@@ -48,6 +48,7 @@ Use Homebrew packages for the **same architecture as your Rust target**:
 brew install gcc openblas hdf5 libaec meson ninja pkgconf python git
 export FC="$(brew --prefix gcc)/bin/gfortran"
 export CC=clang CXX=clang++
+export MACOSX_DEPLOYMENT_TARGET="$(sw_vers -productVersion | cut -d. -f1,2)"
 export PKG_CONFIG_PATH="$(brew --prefix openblas)/lib/pkgconfig:$(brew --prefix hdf5)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 export LIBRARY_PATH="$(brew --prefix libaec)/lib${LIBRARY_PATH:+:$LIBRARY_PATH}"
 export PATH="$(brew --prefix hdf5)/bin:$PATH"
@@ -61,6 +62,8 @@ cargo run -p tblite --example singlepoint
 Homebrew's HDF5 must include Fortran support and match the selected GNU compiler.
 `LIBRARY_PATH` supplies its compression libraries (`sz` and `aec`) when linking
 statically; HDF5's pkg-config metadata can omit their Homebrew search directory.
+The deployment target aligns Rust and native objects with the current macOS
+version. Targeting an older OS also requires dependencies built for that OS.
 The CI matrix contains separate `macos-15` ARM64 and `macos-15-intel` x86-64 jobs.
 These jobs must pass before treating macOS support as verified; no macOS machine
 was available for the initial local validation.
@@ -140,8 +143,9 @@ cargo test --workspace --features tblite/static,tblite-sys/abi-tests
 
 The feature requires `libtblite.a`. It does **not** promise a fully static
 executable. BLAS, GNU Fortran/OpenMP and optional HDF5 may remain shared. The
-build script uses upstream pkg-config metadata and corrects two omissions found
-in 0.7.0: GNU `-fopenmp` requires `gomp`, and HDF5 requires its Fortran library.
+build script uses upstream pkg-config metadata and corrects omissions found
+in these builds: GNU `-fopenmp` requires `gomp`, HDF5 requires its Fortran library,
+and static GNU Fortran may need `quadmath` when the compiler provides it.
 Static linking is initially exercised with the GNU toolchain in these recipes.
 
 If GNU runtime libraries are outside the platform linker search paths, the

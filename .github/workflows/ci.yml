@@ -51,6 +51,7 @@ jobs:
           echo "FC=$(brew --prefix gcc)/bin/gfortran" >> "$GITHUB_ENV"
           echo 'CC=clang' >> "$GITHUB_ENV"
           echo 'CXX=clang++' >> "$GITHUB_ENV"
+          echo "MACOSX_DEPLOYMENT_TARGET=$(sw_vers -productVersion | cut -d. -f1,2)" >> "$GITHUB_ENV"
           echo "PKG_CONFIG_PATH=$(brew --prefix openblas)/lib/pkgconfig:$(brew --prefix hdf5)/lib/pkgconfig" >> "$GITHUB_ENV"
           # HDF5's static pkg-config flags name sz/aec without their Homebrew -L path.
           echo "LIBRARY_PATH=$(brew --prefix libaec)/lib${LIBRARY_PATH:+:$LIBRARY_PATH}" >> "$GITHUB_ENV"

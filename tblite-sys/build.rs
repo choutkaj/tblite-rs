@@ -131,6 +131,18 @@ fn probe(static_link: bool) -> pkg_config::Library {
                 });
             if let Some(dir) = runtime_dir {
                 println!("cargo:rustc-link-search=native={}", dir.display());
+                // Homebrew's metadata can select libgfortran.a without its
+                // quadmath dependency. Some GNU targets do not provide it.
+                let extension = if target.contains("apple") {
+                    "dylib"
+                } else {
+                    "so"
+                };
+                if !lib.libs.iter().any(|n| n == "quadmath")
+                    && dir.join(format!("libquadmath.{extension}")).is_file()
+                {
+                    println!("cargo:rustc-link-lib=dylib=quadmath");
+                }
             }
             if pc.split_whitespace().any(|s| s == "-fopenmp")
                 && !lib.libs.iter().any(|n| n == "gomp")
