@@ -93,6 +93,18 @@ fn check_version(version: &str) {
     );
 }
 
+fn compiler_library(target: &str, filename: &str) -> Option<PathBuf> {
+    if env::var("HOST").ok().as_deref() != Some(target) {
+        return None;
+    }
+    let output = std::process::Command::new(env::var_os("FC").unwrap_or_else(|| "gfortran".into()))
+        .arg(format!("-print-file-name={filename}"))
+        .output()
+        .ok()?;
+    let path = PathBuf::from(String::from_utf8(output.stdout).ok()?.trim());
+    (output.status.success() && path.is_absolute() && path.is_file()).then_some(path)
+}
+
 fn probe(static_link: bool) -> pkg_config::Library {
     let lib = pkg_config::Config::new().range_version("0.7.0".."0.8.0").statik(static_link).probe("tblite").unwrap_or_else(|e| panic!("Cannot link tblite 0.7.x: {e}\nInstall tblite separately and set PKG_CONFIG_PATH or TBLITE_DIR. See docs/installation.md."));
     check_version(&lib.version);
@@ -108,26 +120,14 @@ fn probe(static_link: bool) -> pkg_config::Library {
             let runtime_dir = env::var_os("TBLITE_FORTRAN_LIB_DIR")
                 .map(PathBuf::from)
                 .or_else(|| {
-                    if env::var("HOST").ok().as_ref() != Some(&target) {
-                        return None;
-                    }
                     let filename = if target.contains("apple") {
                         "libgfortran.dylib"
                     } else {
                         "libgfortran.so"
                     };
-                    let output = std::process::Command::new(
-                        env::var_os("FC").unwrap_or_else(|| "gfortran".into()),
-                    )
-                    .arg(format!("-print-file-name={filename}"))
-                    .output()
-                    .ok()?;
-                    let path = PathBuf::from(String::from_utf8(output.stdout).ok()?.trim());
-                    if output.status.success() && path.is_absolute() && path.is_file() {
-                        path.parent().map(PathBuf::from)
-                    } else {
-                        None
-                    }
+                    compiler_library(&target, filename)?
+                        .parent()
+                        .map(PathBuf::from)
                 });
             if let Some(dir) = runtime_dir {
                 println!("cargo:rustc-link-search=native={}", dir.display());
@@ -143,6 +143,20 @@ fn probe(static_link: bool) -> pkg_config::Library {
                 {
                     println!("cargo:rustc-link-lib=dylib=quadmath");
                 }
+            }
+            if target == "x86_64-apple-darwin" && !lib.libs.iter().any(|n| n == "gcc") {
+                // Static libgfortran's x86 CPU dispatch references __cpu_model,
+                // supplied by libgcc.a rather than Apple's compiler runtime.
+                let gcc = env::var_os("TBLITE_FORTRAN_LIB_DIR")
+                    .map(|dir| PathBuf::from(dir).join("libgcc.a"))
+                    .filter(|path| path.is_file())
+                    .or_else(|| compiler_library(&target, "libgcc.a"))
+                    .expect("Static GNU Fortran on Intel macOS requires libgcc.a; set FC to the matching gfortran or TBLITE_FORTRAN_LIB_DIR to its archive directory");
+                println!(
+                    "cargo:rustc-link-search=native={}",
+                    gcc.parent().unwrap().display()
+                );
+                println!("cargo:rustc-link-lib=static=gcc");
             }
             if pc.split_whitespace().any(|s| s == "-fopenmp")
                 && !lib.libs.iter().any(|n| n == "gomp")

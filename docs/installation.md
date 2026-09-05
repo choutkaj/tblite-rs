@@ -146,6 +146,8 @@ executable. BLAS, GNU Fortran/OpenMP and optional HDF5 may remain shared. The
 build script uses upstream pkg-config metadata and corrects omissions found
 in these builds: GNU `-fopenmp` requires `gomp`, HDF5 requires its Fortran library,
 and static GNU Fortran may need `quadmath` when the compiler provides it.
+On Intel macOS, the matching `libgcc.a` also supplies GNU Fortran's CPU-dispatch
+symbols. The build script locates it through `FC`.
 Static linking is initially exercised with the GNU toolchain in these recipes.
 
 If GNU runtime libraries are outside the platform linker search paths, the
