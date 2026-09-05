@@ -141,13 +141,13 @@ cargo run -p tblite --features static --example singlepoint
 cargo test --workspace --features tblite/static,tblite-sys/abi-tests
 ```
 
-The feature requires `libtblite.a`. It does **not** promise a fully static
-executable. BLAS, GNU Fortran/OpenMP and optional HDF5 may remain shared. The
-build script uses upstream pkg-config metadata and corrects omissions found
-in these builds: GNU `-fopenmp` requires `gomp`, HDF5 requires its Fortran library,
-and static GNU Fortran may need `quadmath` when the compiler provides it.
-On Intel macOS, the matching `libgcc.a` also supplies GNU Fortran's CPU-dispatch
-symbols. The build script locates it through `FC`.
+The feature requires `libtblite.a` and shared external dependencies. It bundles
+tblite (including the installer's internal Fortran subprojects), while BLAS,
+GNU Fortran/OpenMP and optional HDF5 remain shared. This avoids accidentally
+embedding a second compiler/BLAS runtime from Homebrew's static archives.
+Fully static executables are not supported. The build script reads the complete
+dependency list from `pkg-config --static` and corrects two metadata omissions:
+GNU `-fopenmp` requires `gomp`, and HDF5 requires its Fortran library.
 Static linking is initially exercised with the GNU toolchain in these recipes.
 
 If GNU runtime libraries are outside the platform linker search paths, the

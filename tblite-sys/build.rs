@@ -105,11 +105,56 @@ fn compiler_library(target: &str, filename: &str) -> Option<PathBuf> {
     (output.status.success() && path.is_absolute() && path.is_file()).then_some(path)
 }
 
+fn link_static_tblite(lib: &pkg_config::Library) {
+    // pkg-config --static is needed for the complete dependency list, but its
+    // Rust adapter otherwise bundles every available archive. On Homebrew that
+    // embeds BLAS and compiler runtimes too. Only tblite should be bundled.
+    for path in &lib.link_paths {
+        println!("cargo:rustc-link-search=native={}", path.display());
+    }
+    for path in &lib.framework_paths {
+        println!("cargo:rustc-link-search=framework={}", path.display());
+    }
+    println!("cargo:rustc-link-lib=static=tblite");
+    for name in lib.libs.iter().filter(|name| *name != "tblite") {
+        println!("cargo:rustc-link-lib=dylib={name}");
+    }
+    for path in &lib.link_files {
+        let filename = path
+            .file_name()
+            .unwrap()
+            .to_str()
+            .expect("UTF-8 library name");
+        let basename = filename.strip_prefix("lib").unwrap_or(filename);
+        let name = basename
+            .strip_suffix(".dylib")
+            .or_else(|| basename.strip_suffix(".so"))
+            .or_else(|| basename.strip_suffix(".a"))
+            .expect("Unsupported pkg-config library filename");
+        if name != "tblite" {
+            println!(
+                "cargo:rustc-link-search=native={}",
+                path.parent().unwrap().display()
+            );
+            println!("cargo:rustc-link-lib=dylib={name}");
+        }
+    }
+    for name in &lib.frameworks {
+        println!("cargo:rustc-link-lib=framework={name}");
+    }
+    for args in &lib.ld_args {
+        if !args.is_empty() {
+            println!("cargo:rustc-link-arg=-Wl,{}", args.join(","));
+        }
+    }
+}
+
 fn probe(static_link: bool) -> pkg_config::Library {
-    let lib = pkg_config::Config::new().range_version("0.7.0".."0.8.0").statik(static_link).probe("tblite").unwrap_or_else(|e| panic!("Cannot link tblite 0.7.x: {e}\nInstall tblite separately and set PKG_CONFIG_PATH or TBLITE_DIR. See docs/installation.md."));
+    let lib = pkg_config::Config::new().range_version("0.7.0".."0.8.0").statik(static_link).cargo_metadata(!static_link).probe("tblite").unwrap_or_else(|e| panic!("Cannot link tblite 0.7.x: {e}\nInstall tblite separately and set PKG_CONFIG_PATH or TBLITE_DIR. See docs/installation.md."));
     check_version(&lib.version);
     if static_link {
         assert!(lib.link_paths.iter().any(|p| p.join("libtblite.a").is_file()), "The `static` feature requires libtblite.a; rebuild tblite with --default-library=both or static");
+        link_static_tblite(&lib);
         // Meson's 0.7 metadata omits HDF5's Fortran module library and
         // pkg-config's Rust adapter drops the GNU driver flag -fopenmp.
         let pcdir = pkg_config::get_variable("tblite", "pcfiledir").expect("tblite.pc location");
@@ -131,32 +176,6 @@ fn probe(static_link: bool) -> pkg_config::Library {
                 });
             if let Some(dir) = runtime_dir {
                 println!("cargo:rustc-link-search=native={}", dir.display());
-                // Homebrew's metadata can select libgfortran.a without its
-                // quadmath dependency. Some GNU targets do not provide it.
-                let extension = if target.contains("apple") {
-                    "dylib"
-                } else {
-                    "so"
-                };
-                if !lib.libs.iter().any(|n| n == "quadmath")
-                    && dir.join(format!("libquadmath.{extension}")).is_file()
-                {
-                    println!("cargo:rustc-link-lib=dylib=quadmath");
-                }
-            }
-            if target == "x86_64-apple-darwin" && !lib.libs.iter().any(|n| n == "gcc") {
-                // Static libgfortran's x86 CPU dispatch references __cpu_model,
-                // supplied by libgcc.a rather than Apple's compiler runtime.
-                let gcc = env::var_os("TBLITE_FORTRAN_LIB_DIR")
-                    .map(|dir| PathBuf::from(dir).join("libgcc.a"))
-                    .filter(|path| path.is_file())
-                    .or_else(|| compiler_library(&target, "libgcc.a"))
-                    .expect("Static GNU Fortran on Intel macOS requires libgcc.a; set FC to the matching gfortran or TBLITE_FORTRAN_LIB_DIR to its archive directory");
-                println!(
-                    "cargo:rustc-link-search=native={}",
-                    gcc.parent().unwrap().display()
-                );
-                println!("cargo:rustc-link-lib=static=gcc");
             }
             if pc.split_whitespace().any(|s| s == "-fopenmp")
                 && !lib.libs.iter().any(|n| n == "gomp")
