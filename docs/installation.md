@@ -12,6 +12,14 @@ manager inputs; this is reproducible source selection, not a promise of identica
 binaries across different toolchains. Build in a path without spaces for the
 most reliable Fortran/pkg-config experience.
 
+The installer applies a small visibility fix to the pinned source: 13 released
+C entry points are explicitly declared `PUBLIC` in their Fortran modules. This
+avoids missing shared-library exports on macOS with affected GNU Fortran
+versions (see [GCC PR126872](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=126872)).
+It changes no C signatures or procedure bodies. Pristine and already-patched
+files are accepted; other edits to these five source files produce an error
+instead of being overwritten. The installed native library remains LGPL-licensed.
+
 ## Linux (x86-64)
 
 For Debian/Ubuntu, install GNU Fortran, C/C++, OpenBLAS, HDF5 including Fortran

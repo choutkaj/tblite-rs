@@ -27,6 +27,50 @@ DEPS = {
     "jonquil": ("https://github.com/toml-f/jonquil", "4d43ffea512977602f654ab10067fcddb3e3c107"),
     "test-drive": ("https://github.com/fortran-lang/test-drive.git", "d16852743043963f294a5d9a3d5218e32c20ea7f"),
 }
+# These released C entry points have PRIVATE Fortran names in 0.7.0. GNU
+# Fortran can hide their symbols on macOS (GCC PR126872). Explicit PUBLIC
+# declarations preserve the C ABI without changing any procedure bodies.
+C_API_PUBLIC = {
+    "calculator.f90": (
+        "set_calculator_guess_api", "get_calculator_shell_count",
+        "get_calculator_shell_map", "get_calculator_angular_momenta",
+        "get_calculator_orbital_count", "get_calculator_orbital_map",
+    ),
+    "container.f90": (
+        "push_back_api", "new_electric_field_api", "new_spin_polarization_api",
+    ),
+    "double_dictionary.f90": ("delete_post_processing_api",),
+    "error.f90": ("set_error_api",),
+    "result.f90": ("save_result_wavefunction_api", "load_result_wavefunction_api"),
+}
+
+def patch_c_api_visibility(source, archive):
+    """Apply the visibility fix against the already checksum-verified archive.
+
+    Accept pristine or previously patched sources; reject other modifications
+    instead of overwriting them. Keep the patch identical on every platform.
+    """
+    updates = []
+    with tarfile.open(archive) as tar:
+        for filename, procedures in C_API_PUBLIC.items():
+            relative = Path("src/tblite/api") / filename
+            with tar.extractfile(f"tblite-0.7.0/{relative.as_posix()}") as stream:
+                original = stream.read().decode("utf-8").replace("\r\n", "\n")
+            marker = "   private\n"
+            if original.count(marker) != 1:
+                raise RuntimeError(f"Unexpected module layout: {relative}")
+            declarations = "\n   ! tblite-rs: keep released C entry points externally visible.\n"
+            declarations += "".join(f"   public :: {name}\n" for name in procedures)
+            patched = original.replace(marker, marker + declarations, 1)
+            path = source / relative
+            current = path.read_text(encoding="utf-8")
+            if current not in (original, patched):
+                raise RuntimeError(f"Native source differs: {relative}; use a fresh --work-dir")
+            if current != patched:
+                updates.append((path, patched))
+    for path, patched in updates:
+        path.write_text(patched, encoding="utf-8", newline="\n")
+    print("Verified native C API visibility fix (13 entry points)", flush=True)
 
 def run(*args, **kwargs):
     print("+", " ".join(map(str, args)), flush=True)
@@ -63,6 +107,7 @@ def main():
                 tar.extractall(work, filter="data")
             else:
                 tar.extractall(work)
+    patch_c_api_visibility(source, archive)
     for name, (url, revision) in DEPS.items():
         dep = source / "subprojects" / name
         if not dep.exists():

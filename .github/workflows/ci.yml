@@ -114,6 +114,7 @@ jobs:
             .native/valgrind-*.log
             .native/static-dependencies.txt
           if-no-files-found: ignore
+          include-hidden-files: true
 
   windows:
     name: Windows x86-64 / MSVC + UCRT64 DLL
@@ -183,3 +184,4 @@ jobs:
           name: native-logs-windows
           path: .native/build/meson-logs/
           if-no-files-found: ignore
+          include-hidden-files: true
