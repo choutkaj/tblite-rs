@@ -45,10 +45,11 @@ changing system Python, install it in a Python virtual environment.
 Use Homebrew packages for the **same architecture as your Rust target**:
 
 ```sh
-brew install gcc openblas hdf5 meson ninja pkgconf python git
+brew install gcc openblas hdf5 libaec meson ninja pkgconf python git
 export FC="$(brew --prefix gcc)/bin/gfortran"
 export CC=clang CXX=clang++
 export PKG_CONFIG_PATH="$(brew --prefix openblas)/lib/pkgconfig:$(brew --prefix hdf5)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+export LIBRARY_PATH="$(brew --prefix libaec)/lib${LIBRARY_PATH:+:$LIBRARY_PATH}"
 export PATH="$(brew --prefix hdf5)/bin:$PATH"
 python3 tools/build-native.py --prefix "$PWD/.native/install" --library both
 export TBLITE_DIR="$PWD/.native/install"
@@ -58,6 +59,8 @@ cargo run -p tblite --example singlepoint
 ```
 
 Homebrew's HDF5 must include Fortran support and match the selected GNU compiler.
+`LIBRARY_PATH` supplies its compression libraries (`sz` and `aec`) when linking
+statically; HDF5's pkg-config metadata can omit their Homebrew search directory.
 The CI matrix contains separate `macos-15` ARM64 and `macos-15-intel` x86-64 jobs.
 These jobs must pass before treating macOS support as verified; no macOS machine
 was available for the initial local validation.
