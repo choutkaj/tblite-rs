@@ -1,0 +1,721 @@
+{
+  "version": "0.7.0",
+  "headers": {
+    "calculator.h": "a7f2c3d1369e2d1e3e990cf00a2a27dc89a8b803ef4e5c5ee4a59bf1108e95a0",
+    "container.h": "26283a5a99699eaac7fdd5cbfd107012657ea4bb88e3b542038610c66e70098d",
+    "context.h": "1a6a1e2ae15317103f14aa8892346b865f687dc4ee586a2951398794501878d9",
+    "double_dictionary.h": "518baa81117d78cc3270509ffe28b0ff117d609640eadd8aab103e6bc79b90e1",
+    "error.h": "a98e8556c9930b1a6c090d3529a1b7fd7f52a21a077f7934c522009186785e5d",
+    "macros.h": "e5e3b35f617d2274b11a415fb58e78f4f44baa587c8938fdffdf7862c298d4f2",
+    "param.h": "5e6b45ef3e2e9bf3f2779c4fa707f993cc48e369e72747299437f52b0abbaa78",
+    "result.h": "0a74362ec7f7a07b857f71aeb9344f4c618511d0d13e43b373139fe0d631ac77",
+    "solvation.h": "53b4069927f6412e0312bf29b8a0f3efc8c7c01db49a7f9d2aac675b19f32785",
+    "structure.h": "dc2ab3cf13e0a767742238dfaa54a2e41895fff6cc05aeb418e2a6958512bb59",
+    "table.h": "599366999daa13346c00c9bc9244efaf8007ea957ffddc6fa46f18f44449941f",
+    "version.h": "2c0dee066dd8a0cd4d4de8617bd09468f52e7a614fe1dddb02b34f75c5ac5d0b"
+  },
+  "functions": [
+    {
+      "name": "tblite_new_gfn2_calculator",
+      "header": "calculator.h",
+      "return": "tblite_calculator",
+      "arguments": "tblite_context ctx,\n                           tblite_structure mol,\n                           tblite_xtb_config* config"
+    },
+    {
+      "name": "tblite_new_gfn1_calculator",
+      "header": "calculator.h",
+      "return": "tblite_calculator",
+      "arguments": "tblite_context ctx,\n                           tblite_structure mol,\n                           tblite_xtb_config* config"
+    },
+    {
+      "name": "tblite_new_ipea1_calculator",
+      "header": "calculator.h",
+      "return": "tblite_calculator",
+      "arguments": "tblite_context ctx,\n                            tblite_structure mol,\n                            tblite_xtb_config* config"
+    },
+    {
+      "name": "tblite_new_xtb_calculator",
+      "header": "calculator.h",
+      "return": "tblite_calculator",
+      "arguments": "tblite_context ctx,\n                          tblite_structure mol,\n                          tblite_param param,\n                          tblite_xtb_config* config"
+    },
+    {
+      "name": "tblite_delete_calculator",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_calculator* calc"
+    },
+    {
+      "name": "tblite_set_calculator_accuracy",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                               tblite_calculator calc,\n                               double acc"
+    },
+    {
+      "name": "tblite_set_calculator_max_iter",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                               tblite_calculator calc,\n                               int max_iter"
+    },
+    {
+      "name": "tblite_set_calculator_mixer_damping",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                    tblite_calculator calc,\n                                    double damping"
+    },
+    {
+      "name": "tblite_set_calculator_mixer_memory",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                   tblite_calculator calc,\n                                   int memory"
+    },
+    {
+      "name": "tblite_set_calculator_mixer",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                            tblite_calculator calc,\n                            tblite_mixer mixer"
+    },
+    {
+      "name": "tblite_set_calculator_temperature_annealing",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                            tblite_calculator calc,\n                                            double initial_etemp,\n                                            int hold,\n                                            int cycles"
+    },
+    {
+      "name": "tblite_set_calculator_guess",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                            tblite_calculator calc,\n                            tblite_guess guess"
+    },
+    {
+      "name": "tblite_set_calculator_temperature",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                  tblite_calculator calc,\n                                  double etemp"
+    },
+    {
+      "name": "tblite_set_calculator_save_integrals",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                     tblite_calculator calc,\n                                     int save_integrals"
+    },
+    {
+      "name": "tblite_get_calculator_shell_count",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                  tblite_calculator calc,\n                                  int* nsh"
+    },
+    {
+      "name": "tblite_get_calculator_shell_map",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                tblite_calculator calc,\n                                int* sh2at"
+    },
+    {
+      "name": "tblite_get_calculator_angular_momenta",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                      tblite_calculator calc,\n                                      int* am"
+    },
+    {
+      "name": "tblite_get_calculator_orbital_count",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                    tblite_calculator calc,\n                                    int* nao"
+    },
+    {
+      "name": "tblite_get_calculator_orbital_map",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                  tblite_calculator calc,\n                                  int* ao2sh"
+    },
+    {
+      "name": "tblite_get_singlepoint",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                       tblite_structure mol,\n                       tblite_calculator calc,\n                       tblite_result res"
+    },
+    {
+      "name": "tblite_push_back_post_processing_str",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                     tblite_calculator calc,\n                                     tblite_structure mol,\n                                     char* charptr"
+    },
+    {
+      "name": "tblite_push_back_post_processing_param",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                       tblite_calculator calc,\n                                       tblite_structure mol,\n                                       tblite_param param"
+    },
+    {
+      "name": "tblite_new_electric_field",
+      "header": "container.h",
+      "return": "tblite_container",
+      "arguments": "double* efield"
+    },
+    {
+      "name": "tblite_new_spin_polarization",
+      "header": "container.h",
+      "return": "tblite_container",
+      "arguments": "tblite_context ctx,\n                             tblite_structure mol,\n                             tblite_calculator calc,\n                             double wscale"
+    },
+    {
+      "name": "tblite_calculator_push_back",
+      "header": "container.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                            tblite_calculator calc,\n                            tblite_container* cont"
+    },
+    {
+      "name": "tblite_delete_container",
+      "header": "container.h",
+      "return": "void",
+      "arguments": "tblite_container* cont"
+    },
+    {
+      "name": "tblite_new_context",
+      "header": "context.h",
+      "return": "tblite_context",
+      "arguments": "void"
+    },
+    {
+      "name": "tblite_delete_context",
+      "header": "context.h",
+      "return": "void",
+      "arguments": "tblite_context* ctx"
+    },
+    {
+      "name": "tblite_check_context",
+      "header": "context.h",
+      "return": "int",
+      "arguments": "tblite_context ctx"
+    },
+    {
+      "name": "tblite_get_context_error",
+      "header": "context.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                         char* buffer,\n                         const int* buffersize"
+    },
+    {
+      "name": "tblite_set_context_logger",
+      "header": "context.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                          tblite_logger_callback callback,\n                          void* userdata"
+    },
+    {
+      "name": "tblite_set_context_color",
+      "header": "context.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                         int color"
+    },
+    {
+      "name": "tblite_set_context_verbosity",
+      "header": "context.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                             int verbosity"
+    },
+    {
+      "name": "tblite_get_n_entries_dict",
+      "header": "double_dictionary.h",
+      "return": "int",
+      "arguments": "tblite_error error,\n                          tblite_double_dictionary dict"
+    },
+    {
+      "name": "tblite_get_array_entry_index",
+      "header": "double_dictionary.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                            tblite_double_dictionary dict,\n                            const int* index,\n                            double* array"
+    },
+    {
+      "name": "tblite_get_array_size_index",
+      "header": "double_dictionary.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                            tblite_double_dictionary dict,\n                            const int* index,\n                            int* dim1,\n                            int* dim2,\n                            int* dim3"
+    },
+    {
+      "name": "tblite_get_array_entry_label",
+      "header": "double_dictionary.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                            tblite_double_dictionary dict,\n                            char* label,\n                            double* array"
+    },
+    {
+      "name": "tblite_get_array_size_label",
+      "header": "double_dictionary.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                            tblite_double_dictionary dict,\n                            char* label,\n                            int* dim1,\n                            int* dim2,\n                            int* dim3"
+    },
+    {
+      "name": "tblite_get_label_entry_index",
+      "header": "double_dictionary.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                             tblite_double_dictionary dict,\n                             const int* index,\n                             char* label,\n                             const int* buffersize"
+    },
+    {
+      "name": "tblite_delete_double_dictionary",
+      "header": "double_dictionary.h",
+      "return": "void",
+      "arguments": "tblite_double_dictionary* dict"
+    },
+    {
+      "name": "tblite_new_error",
+      "header": "error.h",
+      "return": "tblite_error",
+      "arguments": "void"
+    },
+    {
+      "name": "tblite_delete_error",
+      "header": "error.h",
+      "return": "void",
+      "arguments": "tblite_error*"
+    },
+    {
+      "name": "tblite_check_error",
+      "header": "error.h",
+      "return": "int",
+      "arguments": "tblite_error"
+    },
+    {
+      "name": "tblite_clear_error",
+      "header": "error.h",
+      "return": "void",
+      "arguments": "tblite_error"
+    },
+    {
+      "name": "tblite_get_error",
+      "header": "error.h",
+      "return": "void",
+      "arguments": "tblite_error ,\n                 char* ,\n                 const int*"
+    },
+    {
+      "name": "tblite_set_error",
+      "header": "error.h",
+      "return": "void",
+      "arguments": "tblite_error ,\n                 char* ,\n                 const int*"
+    },
+    {
+      "name": "tblite_new_param",
+      "header": "param.h",
+      "return": "tblite_param",
+      "arguments": "void"
+    },
+    {
+      "name": "tblite_delete_param",
+      "header": "param.h",
+      "return": "void",
+      "arguments": "tblite_param* param"
+    },
+    {
+      "name": "tblite_load_param",
+      "header": "param.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                  tblite_param param,\n                  tblite_table table"
+    },
+    {
+      "name": "tblite_dump_param",
+      "header": "param.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                  tblite_param param,\n                  tblite_table table"
+    },
+    {
+      "name": "tblite_export_gfn2_param",
+      "header": "param.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                         tblite_param param"
+    },
+    {
+      "name": "tblite_export_gfn1_param",
+      "header": "param.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                         tblite_param param"
+    },
+    {
+      "name": "tblite_export_ipea1_param",
+      "header": "param.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                          tblite_param param"
+    },
+    {
+      "name": "tblite_new_result",
+      "header": "result.h",
+      "return": "tblite_result",
+      "arguments": "void"
+    },
+    {
+      "name": "tblite_copy_result",
+      "header": "result.h",
+      "return": "tblite_result",
+      "arguments": "tblite_result res"
+    },
+    {
+      "name": "tblite_delete_result",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_result* res"
+    },
+    {
+      "name": "tblite_get_result_number_of_atoms",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                  tblite_result res,\n                                  int* nat"
+    },
+    {
+      "name": "tblite_get_result_number_of_shells",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                   tblite_result res,\n                                   int* nsh"
+    },
+    {
+      "name": "tblite_get_result_number_of_orbitals",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                     tblite_result res,\n                                     int* nao"
+    },
+    {
+      "name": "tblite_get_result_number_of_spins",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                  tblite_result res,\n                                  int* nspin"
+    },
+    {
+      "name": "tblite_get_result_energy",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                         tblite_result res,\n                         double* energy"
+    },
+    {
+      "name": "tblite_get_result_energies",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                           tblite_result res,\n                           double* energies"
+    },
+    {
+      "name": "tblite_get_result_gradient",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                           tblite_result res,\n                           double* gradient"
+    },
+    {
+      "name": "tblite_get_result_virial",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                         tblite_result res,\n                         double* sigma"
+    },
+    {
+      "name": "tblite_get_result_charges",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                          tblite_result res,\n                          double* charges"
+    },
+    {
+      "name": "tblite_get_result_bond_orders",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                              tblite_result res,\n                              double* mbo"
+    },
+    {
+      "name": "tblite_get_result_dipole",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                         tblite_result res,\n                         double dipole[3]"
+    },
+    {
+      "name": "tblite_get_result_quadrupole",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                             tblite_result res,\n                             double quadrupole[6]"
+    },
+    {
+      "name": "tblite_get_result_orbital_energies",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                   tblite_result res,\n                                   double* emo"
+    },
+    {
+      "name": "tblite_get_result_orbital_occupations",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                      tblite_result res,\n                                      double* occ"
+    },
+    {
+      "name": "tblite_get_result_orbital_coefficients",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                       tblite_result res,\n                                       double* cmat"
+    },
+    {
+      "name": "tblite_get_result_density_matrix",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                 tblite_result res,\n                                 double* pmat"
+    },
+    {
+      "name": "tblite_get_result_overlap_matrix",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                 tblite_result res,\n                                 double* smat"
+    },
+    {
+      "name": "tblite_get_result_hamiltonian_matrix",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                     tblite_result res,\n                                     double* hmat"
+    },
+    {
+      "name": "tblite_get_post_processing_dict",
+      "header": "result.h",
+      "return": "tblite_double_dictionary",
+      "arguments": "tblite_error error,\n                                tblite_result res"
+    },
+    {
+      "name": "tblite_save_result_wavefunction",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                tblite_result res,\n                                const char* filename"
+    },
+    {
+      "name": "tblite_load_result_wavefunction",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                tblite_result res,\n                                const char* filename"
+    },
+    {
+      "name": "tblite_new_ddx_solvation_epsilon",
+      "header": "solvation.h",
+      "return": "tblite_container",
+      "arguments": "tblite_error error,\n                                 tblite_structure mol,\n                                 double eps,\n                                 enum tblite_solvation_param model"
+    },
+    {
+      "name": "tblite_new_ddx_solvation_solvent",
+      "header": "solvation.h",
+      "return": "tblite_container",
+      "arguments": "tblite_error error,\n                                 tblite_structure mol,\n                                 char* solvent,\n                                 enum tblite_solvation_param model"
+    },
+    {
+      "name": "tblite_new_gb_solvation_epsilon",
+      "header": "solvation.h",
+      "return": "tblite_container",
+      "arguments": "tblite_error error,\n                                tblite_structure mol,\n                                double eps,\n                                enum tblite_solvation_param version,\n                                enum tblite_born_kernel born"
+    },
+    {
+      "name": "tblite_new_alpb_solvation_solvent",
+      "header": "solvation.h",
+      "return": "tblite_container",
+      "arguments": "tblite_error error,\n                                  tblite_structure mol,\n                                  char* solvent,\n                                  enum tblite_solvation_param version,\n                                  enum tblite_ref_solvation_state refstate"
+    },
+    {
+      "name": "tblite_new_structure",
+      "header": "structure.h",
+      "return": "tblite_structure",
+      "arguments": "tblite_error error,\n                     const int natoms,\n                     const int* numbers,\n                     const double* positions,\n                     const double* charge,\n                     const int* uhf,\n                     const double* lattice,\n                     const bool* periodic"
+    },
+    {
+      "name": "tblite_delete_structure",
+      "header": "structure.h",
+      "return": "void",
+      "arguments": "tblite_structure* mol"
+    },
+    {
+      "name": "tblite_update_structure_geometry",
+      "header": "structure.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                 tblite_structure mol,\n                                 const double* positions,\n                                 const double* lattice"
+    },
+    {
+      "name": "tblite_update_structure_charge",
+      "header": "structure.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                               tblite_structure mol,\n                               const double* charge"
+    },
+    {
+      "name": "tblite_update_structure_uhf",
+      "header": "structure.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                            tblite_structure mol,\n                            const int* uhf"
+    },
+    {
+      "name": "tblite_new_table",
+      "header": "table.h",
+      "return": "tblite_table",
+      "arguments": "tblite_table* table"
+    },
+    {
+      "name": "tblite_delete_table",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_table* table"
+    },
+    {
+      "name": "tblite_table_set_double",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                        tblite_table table,\n                        char key[],\n                        double* value,\n                        int n"
+    },
+    {
+      "name": "tblite_table_set_int64_t",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                         tblite_table table,\n                         char key[],\n                         int64_t* value,\n                         int n"
+    },
+    {
+      "name": "tblite_table_set_bool",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                      tblite_table table,\n                      char key[],\n                      bool* value,\n                      int n"
+    },
+    {
+      "name": "tblite_table_set_char",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                      tblite_table table,\n                      char key[],\n                      char (* value)[],\n                      int n"
+    },
+    {
+      "name": "tblite_table_add_table",
+      "header": "table.h",
+      "return": "tblite_table",
+      "arguments": "tblite_error error,\n                       tblite_table table,\n                       char key[]"
+    },
+    {
+      "name": "tblite_new_array",
+      "header": "table.h",
+      "return": "tblite_array",
+      "arguments": "void"
+    },
+    {
+      "name": "tblite_delete_array",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_array* array"
+    },
+    {
+      "name": "tblite_array_push_back_double",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                              tblite_array array,\n                              double value"
+    },
+    {
+      "name": "tblite_array_push_back_int64_t",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                               tblite_array array,\n                               int64_t value"
+    },
+    {
+      "name": "tblite_array_push_back_bool",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                            tblite_array array,\n                            bool value"
+    },
+    {
+      "name": "tblite_array_push_back_char",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                            tblite_array array,\n                            char value[]"
+    },
+    {
+      "name": "tblite_array_size",
+      "header": "table.h",
+      "return": "int",
+      "arguments": "tblite_error error,\n                  tblite_array array"
+    },
+    {
+      "name": "tblite_array_get_type",
+      "header": "table.h",
+      "return": "int",
+      "arguments": "tblite_error error,\n                      tblite_array array,\n                      int index"
+    },
+    {
+      "name": "tblite_array_get_double",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                        tblite_array array,\n                        int index,\n                        double* value"
+    },
+    {
+      "name": "tblite_array_get_int64_t",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                         tblite_array array,\n                         int index,\n                         int64_t* value"
+    },
+    {
+      "name": "tblite_array_get_bool",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                       tblite_array array,\n                       int index,\n                       bool* value"
+    },
+    {
+      "name": "tblite_array_get_char",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                      tblite_array array,\n                      int index,\n                      char value[],\n                      int n"
+    },
+    {
+      "name": "tblite_table_set_array",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                       tblite_table table,\n                       char key[],\n                       tblite_array array"
+    },
+    {
+      "name": "tblite_table_get_type",
+      "header": "table.h",
+      "return": "int",
+      "arguments": "tblite_error error,\n                      tblite_table table,\n                      char key[]"
+    },
+    {
+      "name": "tblite_table_get_bool",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                      tblite_table table,\n                      char key[],\n                      bool* value"
+    },
+    {
+      "name": "tblite_table_get_int64_t",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                         tblite_table table,\n                         char key[],\n                         int64_t* value"
+    },
+    {
+      "name": "tblite_table_get_double",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                        tblite_table table,\n                        char key[],\n                        double* value"
+    },
+    {
+      "name": "tblite_table_get_char",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                      tblite_table table,\n                      char key[],\n                      char value[],\n                      int n"
+    },
+    {
+      "name": "tblite_table_get_table",
+      "header": "table.h",
+      "return": "tblite_table",
+      "arguments": "tblite_error error,\n                       tblite_table table,\n                       char key[]"
+    },
+    {
+      "name": "tblite_table_get_array",
+      "header": "table.h",
+      "return": "tblite_array",
+      "arguments": "tblite_error error,\n                       tblite_table table,\n                       char key[]"
+    },
+    {
+      "name": "tblite_table_get_n_keys",
+      "header": "table.h",
+      "return": "int",
+      "arguments": "tblite_error error,\n                        tblite_table table"
+    },
+    {
+      "name": "tblite_table_get_key",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                     tblite_table table,\n                     int index,\n                     char key[],\n                     int n"
+    },
+    {
+      "name": "tblite_dump_table",
+      "header": "table.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                  tblite_table table,\n                  char filename[]"
+    },
+    {
+      "name": "tblite_get_version",
+      "header": "version.h",
+      "return": "int",
+      "arguments": "void"
+    }
+  ]
+}

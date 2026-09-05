@@ -1,0 +1,23 @@
+[package]
+name = "tblite"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Safe Rust bindings to the tblite extended tight-binding library"
+repository = "https://github.com/choutkaj/tblite-rs"
+readme = "README.md"
+# Upstream-derived scientific test fixtures stay in the repository; the library
+# package contains original Rust code, examples and the associated notices.
+include = ["src/**", "examples/**", "Cargo.toml", "README.md", "LICENSE-*", "NOTICE.md"]
+
+[features]
+default = []
+static = ["tblite-sys/static"]
+
+[dependencies]
+tblite-sys.workspace = true
+toml = { version = "0.9", default-features = false, features = ["parse", "display", "std", "serde"] }
+
+[package.metadata.docs.rs]
+no-default-features = true

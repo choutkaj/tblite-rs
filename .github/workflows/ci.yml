@@ -1,0 +1,185 @@
+name: Rust and native integration
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  OMP_NUM_THREADS: '1'
+  OPENBLAS_NUM_THREADS: '1'
+
+jobs:
+  unix:
+    name: ${{ matrix.os }} / ${{ matrix.capabilities }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-24.04, capabilities: full}
+          - {os: ubuntu-24.04, capabilities: minimal}
+          - {os: macos-15, capabilities: full}
+          - {os: macos-15-intel, capabilities: full}
+    defaults:
+      run:
+        shell: bash
+    env:
+      TBLITE_TEST_OPTIONAL: ${{ matrix.capabilities }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Linux prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran gcc g++ libopenblas-dev libhdf5-dev meson ninja-build pkg-config valgrind
+          echo 'FC=gfortran' >> "$GITHUB_ENV"
+          echo 'CC=gcc' >> "$GITHUB_ENV"
+          echo 'CXX=g++' >> "$GITHUB_ENV"
+      - name: macOS prerequisites
+        if: runner.os == 'macOS'
+        run: |
+          brew install gcc openblas hdf5 meson ninja pkgconf python
+          echo "FC=$(brew --prefix gcc)/bin/gfortran" >> "$GITHUB_ENV"
+          echo 'CC=clang' >> "$GITHUB_ENV"
+          echo 'CXX=clang++' >> "$GITHUB_ENV"
+          echo "PKG_CONFIG_PATH=$(brew --prefix openblas)/lib/pkgconfig:$(brew --prefix hdf5)/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "$(brew --prefix hdf5)/bin" >> "$GITHUB_PATH"
+      - name: Check generated declarations, inventory and formatting
+        run: |
+          python3 tools/generate_bindings.py --check
+          python3 tools/check_coverage.py --check
+          cargo fmt --all --check
+          python3 tools/check_discovery.py
+      - name: Build and install pinned native library
+        run: |
+          options=()
+          if [ "$TBLITE_TEST_OPTIONAL" = minimal ]; then options+=(--minimal); fi
+          python3 tools/build-native.py --prefix "$PWD/.native/install" --library both "${options[@]}"
+          echo "TBLITE_DIR=$PWD/.native/install" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$PWD/.native/install/lib" >> "$GITHUB_ENV"
+          echo "DYLD_LIBRARY_PATH=$PWD/.native/install/lib" >> "$GITHUB_ENV"
+          if [ "$RUNNER_OS" = macOS ]; then
+            echo "RUSTFLAGS=-C link-arg=-Wl,-rpath,$PWD/.native/install/lib" >> "$GITHUB_ENV"
+          fi
+      - name: Dynamic integration, ABI and documentation
+        run: |
+          cargo test --locked --workspace --features tblite-sys/abi-tests
+          cargo clippy --locked --workspace --all-targets --features tblite-sys/abi-tests -- -D warnings
+          RUSTDOCFLAGS='-D warnings' cargo doc --locked --workspace --no-deps
+          for example in singlepoint geometry_updates solvation custom_parameters results; do
+            cargo run --locked -p tblite --example "$example"
+          done
+      - name: pkg-config discovery without TBLITE_DIR
+        run: |
+          PKG_CONFIG_PATH="$TBLITE_DIR/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
+            env -u TBLITE_DIR cargo run --locked -p tblite --example singlepoint
+      - name: Static integration and loader inspection
+        run: |
+          cargo test --locked --workspace --features tblite/static,tblite-sys/abi-tests
+          cargo run --locked -p tblite --features static --example singlepoint
+          if [ "$RUNNER_OS" = Linux ]; then
+            ldd target/debug/examples/singlepoint > .native/static-dependencies.txt
+          else
+            otool -L target/debug/examples/singlepoint > .native/static-dependencies.txt
+          fi
+          cat .native/static-dependencies.txt
+          if grep -i libtblite .native/static-dependencies.txt; then
+            echo 'Static executable unexpectedly loads shared tblite' >&2
+            exit 1
+          fi
+      - name: Check supported Rust version
+        if: matrix.os == 'ubuntu-24.04' && matrix.capabilities == 'minimal'
+        run: |
+          rustup toolchain install 1.85.0 --profile minimal
+          cargo +1.85.0 check --locked --workspace
+      - name: Native memory checks
+        if: matrix.os == 'ubuntu-24.04' && matrix.capabilities == 'full'
+        run: python3 tools/check_memory.py
+      - name: Save diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-logs-${{ matrix.os }}-${{ matrix.capabilities }}
+          path: |
+            .native/build/meson-logs/
+            .native/valgrind-*.log
+            .native/static-dependencies.txt
+          if-no-files-found: ignore
+
+  windows:
+    name: Windows x86-64 / MSVC + UCRT64 DLL
+    runs-on: windows-2025
+    timeout-minutes: 45
+    env:
+      TBLITE_TEST_OPTIONAL: full
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: msys2/setup-msys2@v2
+        id: msys
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git
+            mingw-w64-ucrt-x86_64-gcc-fortran
+            mingw-w64-ucrt-x86_64-meson
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-openblas
+            mingw-w64-ucrt-x86_64-hdf5
+      - name: Native GNU DLL
+        shell: msys2 {0}
+        run: |
+          export FC=gfortran CC=gcc CXX=g++
+          python tools/build-native.py --prefix "$PWD/.native/install" --library shared
+      - name: MSVC import library and runtime paths
+        shell: pwsh
+        env:
+          MSYS_ROOT: ${{ steps.msys.outputs.msys2-location }}
+        run: |
+          ./tools/windows-import-library.ps1 -Prefix .native/install
+          $prefix = (Resolve-Path .native/install).Path
+          "TBLITE_DIR=$prefix" >> $env:GITHUB_ENV
+          "$prefix\bin" >> $env:GITHUB_PATH
+          "$env:MSYS_ROOT\ucrt64\bin" >> $env:GITHUB_PATH
+      - name: Rust bindings, examples and ABI
+        shell: pwsh
+        run: |
+          python tools/generate_bindings.py --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/check_coverage.py --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo fmt --all --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/check_discovery.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --locked --workspace --features tblite-sys/abi-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo clippy --locked --workspace --all-targets --features tblite-sys/abi-tests -- -D warnings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($example in 'singlepoint','geometry_updates','solvation','custom_parameters','results') {
+            cargo run --locked -p tblite --example $example
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Save native logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-logs-windows
+          path: .native/build/meson-logs/
+          if-no-files-found: ignore

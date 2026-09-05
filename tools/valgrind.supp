@@ -1,0 +1,9 @@
+# tblite 0.7.0 callback_logger%verror is allocated in message() but has no
+# finalizer. Do not suppress invalid accesses, Rust leaks, or any other native leak.
+{
+   tblite-0.7.0-callback-error-handle
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:__tblite_api_context_MOD_message
+}

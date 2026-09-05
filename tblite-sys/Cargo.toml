@@ -1,0 +1,22 @@
+[package]
+name = "tblite-sys"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "(MIT OR Apache-2.0) AND LGPL-3.0-or-later"
+description = "Raw bindings to the tblite 0.7 C API"
+repository = "https://github.com/choutkaj/tblite-rs"
+readme = "README.md"
+links = "tblite"
+
+[features]
+default = []
+static = []
+abi-tests = ["dep:cc"]
+
+[build-dependencies]
+pkg-config = "0.3.33"
+cc = { version = "1.2", optional = true }
+
+[package.metadata.docs.rs]
+no-default-features = true
