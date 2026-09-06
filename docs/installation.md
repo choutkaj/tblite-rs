@@ -106,6 +106,15 @@ library. The import library is a build-time input; the matching tblite DLL and
 its dependency DLLs are needed at runtime. Do not substitute Fortran modules or
 runtime DLLs from an unrelated GCC installation.
 
+If Windows shows a system-error dialog naming `libgcc_s_seh-1.dll`,
+`libgfortran-5.dll` or another runtime DLL, the executable could not start.
+Check that the same UCRT64 `bin` directory used for the native build is in the
+launched process's `PATH`. Setting `TBLITE_DIR` alone only helps Cargo find the
+library at build time. The DLL may already be installed but outside that search
+path; reinstalling tblite is not needed in that case. For the benchmark runner,
+pass `--runtime-dir C:/msys64/ucrt64/bin` with your actual installation path.
+The runner logs these startup errors and stops without Windows loader dialogs.
+
 ## Cargo discovery and runtime discovery
 
 Set **one** of:

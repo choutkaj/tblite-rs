@@ -4,6 +4,7 @@ Requires Python 3.10+, numpy and matplotlib; neither is a library dependency.
 See benchmarks/mb16-43/README.md for provenance, scope and reproduction.
 """
 import argparse
+from contextlib import contextmanager
 import csv
 from datetime import datetime, timezone
 import hashlib
@@ -66,13 +67,55 @@ def prepare(source):
     print(f"Prepared all {len(structures)} structures in {DATA}")
 
 
+class NativeStartupError(RuntimeError):
+    """A missing/incompatible Windows runtime prevents any calculation."""
+
+
+@contextmanager
+def console_loader_errors():
+    # Children inherit this process's error mode. Return loader errors to the
+    # runner instead of showing modal Windows dialogs. Restore the parent's
+    # flags afterwards; never change persistent/system-wide settings.
+    if os.name != "nt":
+        yield
+        return
+    import ctypes
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetErrorMode.argtypes = []
+    kernel32.GetErrorMode.restype = ctypes.c_uint
+    kernel32.SetErrorMode.argtypes = [ctypes.c_uint]
+    kernel32.SetErrorMode.restype = ctypes.c_uint
+    previous = kernel32.GetErrorMode()
+    kernel32.SetErrorMode(previous | 0x0001)  # SEM_FAILCRITICALERRORS
+    try:
+        yield
+    finally:
+        kernel32.SetErrorMode(previous)
+
+
 def execute(command, cwd, env, log, timeout):
     try:
-        result = subprocess.run([str(a) for a in command], cwd=cwd, env=env,
-                                capture_output=True, timeout=timeout)
+        with console_loader_errors():
+            result = subprocess.run([str(a) for a in command], cwd=cwd, env=env,
+                                    capture_output=True, timeout=timeout)
         output = result.stdout + result.stderr
         log.write_bytes(output)
         if result.returncode:
+            status = result.returncode & 0xFFFFFFFF
+            loader_errors = {
+                0xC0000135: "a required runtime DLL could not be found",
+                0xC000007B: "a DLL or executable has an incompatible binary format",
+                0xC0000139: "a required DLL entry point could not be found",
+                0xC0000142: "a runtime DLL failed to initialize",
+            }
+            if status in loader_errors:
+                message = (f"{Path(command[0]).name} could not start (0x{status:08X}): "
+                           f"{loader_errors[status]}. Check --library and supply the matching "
+                           "UCRT64 bin directory with --runtime-dir (or add it to PATH). "
+                           "No calculation was performed.")
+                with log.open("ab") as stream:
+                    stream.write(("\n" + message + "\n").encode())
+                raise NativeStartupError(message)
             raise RuntimeError(f"exit {result.returncode}; see {log.name}")
     except subprocess.TimeoutExpired as exc:
         log.write_bytes((exc.stdout or b"") + (exc.stderr or b""))
@@ -265,6 +308,7 @@ def run(args):
     for mol in structures[:args.limit]:
         for method in METHODS:
             record = {"id": mol["id"], "method": method, "status": "failed", "errors": {}}
+            startup_failure = False
             # Each subprocess has a fresh directory: no restart or implicit input leakage.
             work = output / f"{mol['id']}-{method}-{uuid.uuid4().hex[:12]}"
             work.mkdir()
@@ -289,6 +333,9 @@ def run(args):
                     record[route] = result
                 except (RuntimeError, ValueError, OSError, KeyError) as exc:
                     record["errors"][route] = str(exc)
+                    if isinstance(exc, NativeStartupError):
+                        startup_failure = True
+                        break
             if not record["errors"]:
                 record["status"] = "compared"
                 record["pass"] = all(np.max(np.abs(np.array(record["native"][k])-record["rust"][k])) <= tol
@@ -296,6 +343,10 @@ def run(args):
             payload["records"].append(record)
             save_json(output / "results.json", payload)
             print(f"{mol['id']} {method}: {record['status']} {record.get('pass', record['errors'])}", flush=True)
+            if startup_failure:
+                report(output, payload, plot=False)
+                print("Stopped after the startup failure; fix the runtime path before retrying.", flush=True)
+                return 1
     passed = report(output, payload, not args.no_plot)
     print(f"Report: {output / 'README.md'}", flush=True)
     return 0 if passed else 1

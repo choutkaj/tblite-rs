@@ -77,6 +77,9 @@ and `parity_export.exe`, with `--runtime-dir C:/msys64/ucrt64/bin` or the actual
 runtime directory; venv Python is `Scripts/python.exe`. Use a fresh output
 directory: the runner refuses to overwrite existing results. Logs and native
 NPZ files stay with each run; checked-in reports preserve normalized values.
+On Windows, missing or incompatible runtime DLLs produce an actionable console
+error and stop the run after the first startup failure. The runner suppresses
+modal loader dialogs for its child processes; these errors still fail the run.
 
 Each case runs in a new directory, preventing reuse of wavefunctions or implicit
 `.CHRG` / `.UHF` inputs. Both routes use SAD, accuracy 0.01, at most 250 SCF

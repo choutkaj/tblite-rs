@@ -1,9 +1,17 @@
 """Check that the parity comparator cannot hide numerical or execution errors."""
+from argparse import Namespace
+from contextlib import redirect_stdout
+import io
+import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
-from benchmark_parity import metrics, report, validate
+from benchmark_parity import NativeStartupError, execute, metrics, report, run, validate
 
 
 def result(energy=-4.0):
@@ -18,6 +26,42 @@ def pair(index=1):
 
 
 class ParityChecks(unittest.TestCase):
+    def test_loader_status_is_actionable_for_signed_and_unsigned_exit_codes(self):
+        for code in (0xC0000135, -1073741515):
+            with tempfile.TemporaryDirectory() as folder:
+                log = Path(folder) / "native.log"
+                failure = subprocess.CompletedProcess([], code, b"", b"")
+                with patch("benchmark_parity.subprocess.run", return_value=failure):
+                    with self.assertRaisesRegex(NativeStartupError, "--runtime-dir"):
+                        execute(["tblite.exe"], folder, {}, log, 5)
+                self.assertIn("0xC0000135", log.read_text())
+                self.assertIn("No calculation was performed", log.read_text())
+
+    def test_startup_failure_stops_before_launching_remaining_cases(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            dummy = root / "unused-binary"
+            dummy.write_bytes(b"mock")
+            args = Namespace(output=root / "report", library=dummy, native=dummy, rust=dummy,
+                             runtime_dir=[], limit=43, timeout=5, no_plot=True)
+            with patch("benchmark_parity.execute", side_effect=NativeStartupError("missing runtime")) as launch:
+                with redirect_stdout(io.StringIO()):
+                    self.assertEqual(run(args), 1)
+            self.assertEqual(launch.call_count, 1)
+            records = json.loads((args.output / "results.json").read_text())["records"]
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0]["status"], "failed")
+            self.assertEqual(records[0]["errors"], {"native": "missing runtime"})
+
+    @unittest.skipUnless(os.name == "nt", "Windows process error modes")
+    def test_child_inherits_no_loader_dialogs_and_parent_mode_is_restored(self):
+        import ctypes
+        previous = ctypes.windll.kernel32.GetErrorMode()
+        check = "import ctypes,sys; sys.exit(0 if ctypes.windll.kernel32.GetErrorMode() & 1 else 3)"
+        with tempfile.TemporaryDirectory() as folder:
+            execute([sys.executable, "-c", check], folder, dict(os.environ), Path(folder) / "child.log", 20)
+        self.assertEqual(ctypes.windll.kernel32.GetErrorMode(), previous)
+
     def test_perfect_correlation_does_not_hide_constant_offset(self):
         records = [pair(i) for i in range(1, 5)]
         for record in records:
