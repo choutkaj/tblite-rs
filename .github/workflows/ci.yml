@@ -40,7 +40,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y gfortran gcc g++ libopenblas-dev libhdf5-dev meson ninja-build pkg-config valgrind
+          sudo apt-get install -y gfortran gcc g++ libopenblas-dev libhdf5-dev meson ninja-build pkg-config valgrind python3-venv
           echo 'FC=gfortran' >> "$GITHUB_ENV"
           echo 'CC=gcc' >> "$GITHUB_ENV"
           echo 'CXX=g++' >> "$GITHUB_ENV"
@@ -81,6 +81,18 @@ jobs:
           for example in singlepoint geometry_updates solvation custom_parameters results; do
             cargo run --locked -p tblite --example "$example"
           done
+      - name: MB16-43 native and Rust numerical parity
+        if: matrix.os == 'ubuntu-24.04' && matrix.capabilities == 'full'
+        run: |
+          python3 -m venv .native/parity-venv
+          .native/parity-venv/bin/python -m pip install -r tools/parity-requirements.txt
+          .native/parity-venv/bin/python tools/test_benchmark_parity.py
+          cargo build --locked -p tblite --example parity_export
+          .native/parity-venv/bin/python tools/benchmark_parity.py run \
+            --native "$TBLITE_DIR/bin/tblite" \
+            --library "$TBLITE_DIR/lib/libtblite.so" \
+            --rust target/debug/examples/parity_export \
+            --output .native/parity
       - name: pkg-config discovery without TBLITE_DIR
         run: |
           PKG_CONFIG_PATH="$TBLITE_DIR/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
@@ -122,6 +134,7 @@ jobs:
             .native/build/meson-logs/
             .native/valgrind-*.log
             .native/static-dependencies.txt
+            .native/parity/
           if-no-files-found: ignore
           include-hidden-files: true
 

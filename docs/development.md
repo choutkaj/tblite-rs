@@ -52,6 +52,11 @@ independent calculators on several threads. Compile-fail doctests check handle
 thread confinement and borrows. Numerical comparisons use tolerances suitable
 for changes in BLAS/compiler floating-point order.
 
+The [MB16-43 parity benchmark](../benchmarks/mb16-43/README.md) compares all 43
+target structures across GFN1/GFN2/IPEA1 against the native Fortran CLI. Its
+reports include full numerical pairs, absolute component errors and plots.
+The benchmark complements the derivative and ownership tests above.
+
 ## Headers, raw bindings and coverage
 
 ```sh

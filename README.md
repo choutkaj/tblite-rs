@@ -42,6 +42,7 @@ For this geometry, the GFN2 energy is approximately **−5.070318054912 Hartree*
 - [API coverage](docs/api-coverage.md): every C function mapped to its Rust equivalent.
 - [Safety, units and upstream errata](docs/safety.md): ownership, callbacks, matrices and 0.7.0 adaptations.
 - [Verification and development](docs/development.md): tests, binding regeneration and platform status.
+- [MB16-43 numerical parity](benchmarks/mb16-43/README.md): 43 structures across three methods, native/Rust errors and plots.
 - [Licensing](docs/licensing.md): original Rust licenses and native distribution obligations.
 
 Examples: [single point](tblite/examples/singlepoint.rs),
