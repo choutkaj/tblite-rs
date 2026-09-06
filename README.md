@@ -1,5 +1,10 @@
 # tblite-rs
 
+[![CI](https://github.com/choutkaj/tblite-rs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/choutkaj/tblite-rs/actions/workflows/ci.yml?query=branch%3Amain)
+[![Rust 1.85+](https://img.shields.io/badge/Rust-1.85%2B-orange?logo=rust)](Cargo.toml)
+[![tblite 0.7.x](https://img.shields.io/badge/tblite-0.7.x-blue)](docs/installation.md)
+[![Rust code: MIT OR Apache-2.0](https://img.shields.io/badge/Rust%20code-MIT%20OR%20Apache--2.0-blue)](docs/licensing.md)
+
 Rust bindings to the **117 public C functions in tblite 0.7.0**, with an owning,
 safe interface for molecular and periodic extended tight-binding calculations.
 
