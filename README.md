@@ -5,7 +5,7 @@
 [![tblite 0.7.x](https://img.shields.io/badge/tblite-0.7.x-blue)](docs/installation.md)
 [![Rust code: MIT OR Apache-2.0](https://img.shields.io/badge/Rust%20code-MIT%20OR%20Apache--2.0-blue)](docs/licensing.md)
 
-Rust bindings to the **117 public C functions in tblite 0.7.0**, with an owning,
+AI-generated Rust bindings to the **117 public C functions in tblite 0.7.0**, with an owning,
 safe interface for molecular and periodic extended tight-binding calculations.
 
 The workspace contains `tblite-sys` (checked-in raw declarations) and `tblite`
