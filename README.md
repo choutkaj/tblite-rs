@@ -15,8 +15,7 @@ download or compile Fortran, and ordinary builds do not need Clang.
 
 ```toml
 [dependencies]
-# Until a crates.io release, point to this checkout:
-tblite = { path = "/path/to/tblite-rs/tblite" }
+tblite = "0.1.0"
 ```
 
 ```rust
@@ -44,6 +43,8 @@ For this geometry, the GFN2 energy is approximately **−5.070318054912 Hartree*
 - [Verification and development](docs/development.md): tests, binding regeneration and platform status.
 - [MB16-43 numerical parity](benchmarks/mb16-43/README.md): 43 structures across three methods, native/Rust errors and plots.
 - [Licensing](docs/licensing.md): original Rust licenses and native distribution obligations.
+- [Changelog](CHANGELOG.md) and [0.1.0 release notes](docs/releases/v0.1.0.md).
+- [Publishing a release](docs/releasing.md): maintainer checks and crates.io/GitHub commands.
 
 Examples: [single point](tblite/examples/singlepoint.rs),
 [geometry updates](tblite/examples/geometry_updates.rs),

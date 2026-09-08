@@ -23,10 +23,11 @@ cargo run -p tblite --example singlepoint
 These ignored local build directories are not distributed in the repository;
 on another machine, follow [installation.md](installation.md).
 
-macOS ARM64 and x86-64 jobs are provided in CI but were **not run locally**.
-TREXIO-enabled output and cross-compilation were not exercised. The CI workflow
-must complete successfully on each target before a release claims verification
-there. Native integration is not simulated by mocks.
+macOS ARM64 and x86-64 passed in CI, alongside Windows and both Linux native
+configurations, on [commit 82c37c2](https://github.com/choutkaj/tblite-rs/actions/runs/34028045023).
+macOS was not run locally. TREXIO-enabled output and cross-compilation were not
+exercised. Each release must have a successful CI run for its own commit;
+see [releasing.md](releasing.md). Native integration is not simulated by mocks.
 
 Valgrind exercises the ownership, callback, restart, optional-feature and table
 paths. Run `python3 tools/check_memory.py` on Linux after installation. Its narrow

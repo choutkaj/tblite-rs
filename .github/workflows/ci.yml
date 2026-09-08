@@ -81,6 +81,9 @@ jobs:
           for example in singlepoint geometry_updates solvation custom_parameters results; do
             cargo run --locked -p tblite --example "$example"
           done
+      - name: Verify release packages without publishing
+        if: matrix.os == 'ubuntu-24.04' && matrix.capabilities == 'full'
+        run: cargo publish --locked --workspace --dry-run
       - name: MB16-43 native and Rust numerical parity
         if: matrix.os == 'ubuntu-24.04' && matrix.capabilities == 'full'
         run: |

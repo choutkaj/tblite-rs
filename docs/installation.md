@@ -65,8 +65,9 @@ statically; HDF5's pkg-config metadata can omit their Homebrew search directory.
 The deployment target aligns Rust and native objects with the current macOS
 version. Targeting an older OS also requires dependencies built for that OS.
 The CI matrix contains separate `macos-15` ARM64 and `macos-15-intel` x86-64 jobs.
-These jobs must pass before treating macOS support as verified; no macOS machine
-was available for the initial local validation.
+Both architectures passed CI during 0.1.0 preparation; see the linked run in
+[development.md](development.md). No macOS machine was available for local
+validation, and each release still requires CI for its own commit.
 
 ## Windows x86-64, MSVC Rust
 
