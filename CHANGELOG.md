@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- `tools/bundle-native.py` builds a redistributable tblite 0.7.0 runtime bundle
+  for Windows x86-64 (MSYS2 UCRT64) and Linux x86-64 (conda-forge, glibc 2.28)
+  from pinned toolchains: the shared library, its runtime libraries, licence
+  texts and `SOURCES.md`. See [distribution](docs/distribution.md).
+- `tools/build-native.py --hdf5 disabled` builds without HDF5 and keeps ddX.
+
 ## 0.1.0
 
 Initial release of `tblite` and `tblite-sys`.

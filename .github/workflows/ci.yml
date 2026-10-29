@@ -210,3 +210,72 @@ jobs:
           path: .native/build/meson-logs/
           if-no-files-found: ignore
           include-hidden-files: true
+
+  bundle-linux:
+    name: Runtime bundle / Linux x86-64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: micromamba
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/micromamba" \
+            https://github.com/mamba-org/micromamba-releases/releases/download/2.10.0-0/micromamba-linux-64
+          echo "701f39c06f8e6a670a0e186c8479b9e5c0502a2f0cda6cef65d83bdd2875e8bd  $RUNNER_TEMP/micromamba" | sha256sum -c
+          chmod +x "$RUNNER_TEMP/micromamba"
+          echo "MAMBA_EXE=$RUNNER_TEMP/micromamba" >> "$GITHUB_ENV"
+      - name: Build the bundle from the pinned toolchain
+        run: python3 tools/bundle-native.py --out "$PWD/.native/tblite-linux-x86_64"
+      - name: Bindings and examples against the bundle alone
+        run: |
+          export TBLITE_DIR="$PWD/.native/tblite-linux-x86_64"
+          export LD_LIBRARY_PATH="$TBLITE_DIR/lib"
+          cargo test --locked --workspace --features tblite-sys/abi-tests
+          for example in singlepoint geometry_updates solvation custom_parameters results; do
+            cargo run --locked -p tblite --example "$example"
+          done
+
+  bundle-windows:
+    name: Runtime bundle / Windows x86-64
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: msys2/setup-msys2@v2
+        id: msys
+        with:
+          msystem: UCRT64
+          update: true
+      - name: Pinned package URLs
+        shell: pwsh
+        run: |
+          $urls = python tools/bundle-native.py --msys2-urls
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "MSYS2_PINNED=$($urls -join ' ')" >> $env:GITHUB_ENV
+      - name: Pinned MSYS2 UCRT64 toolchain
+        shell: msys2 {0}
+        run: pacman -U --needed --noconfirm $MSYS2_PINNED
+      - name: Build the bundle
+        shell: pwsh
+        run: python tools/bundle-native.py --msys2 "${{ steps.msys.outputs.msys2-location }}" --out .native/tblite-windows-x86_64
+      - name: Bindings and examples against the bundle alone
+        shell: pwsh
+        run: |
+          $env:TBLITE_DIR = (Resolve-Path .native/tblite-windows-x86_64).Path
+          $env:PATH = "$env:TBLITE_DIR\lib;$env:PATH"
+          cargo test --locked --workspace --features tblite-sys/abi-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($example in 'singlepoint','geometry_updates','solvation','custom_parameters','results') {
+            cargo run --locked -p tblite --example $example
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }

@@ -83,6 +83,8 @@ def main():
     parser.add_argument("--build-dir", type=Path)
     parser.add_argument("--library", choices=["shared", "static", "both"], default="shared")
     parser.add_argument("--minimal", action="store_true", help="Disable ddX and HDF5")
+    parser.add_argument("--hdf5", choices=["enabled", "disabled"], default="enabled",
+                        help="HDF5 support; --minimal disables it")
     parser.add_argument("--trexio", choices=["disabled", "enabled", "auto"], default="disabled")
     parser.add_argument("--jobs", type=int, default=4)
     args = parser.parse_args()
@@ -129,7 +131,7 @@ def main():
     build = (args.build_dir or work / ("build-minimal" if args.minimal else "build")).resolve()
     command = ["meson", "setup", build, source, f"--prefix={args.prefix.resolve()}", "--libdir=lib",
                "--buildtype=release", f"--default-library={args.library}", "-Dapi=true", "-Dlapack=openblas",
-               f"-Dddx={'false' if args.minimal else 'true'}", f"-Dhdf5={'disabled' if args.minimal else 'enabled'}",
+               f"-Dddx={'false' if args.minimal else 'true'}", f"-Dhdf5={'disabled' if args.minimal else args.hdf5}",
                f"-Dtrexio={args.trexio}", "--wrap-mode=nodownload"]
     # Use the pinned local Fortran dependencies even if other versions are installed.
     command += ["--force-fallback-for=" + ",".join(["toml-f", "mctc-lib", "dftd4", "s-dftd3", "multicharge", "ddx", "mstore", "jonquil", "test-drive"])]

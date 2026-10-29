@@ -26,9 +26,11 @@ source, local changes, build instructions, and the application object/link
 materials needed for that process. Section 4(e) can also require installation
 information where GPL section 6 applies.
 
-The installation helper selects upstream dependencies but does not create a
-distribution compliance bundle. Review the licenses of the actual BLAS,
-Fortran/OpenMP runtime, HDF5, ddX and other libraries you ship; optional or
-transitive components have their own terms. These notes describe the shipped
-license texts and are not a substitute for reviewing your distribution against
-them.
+`tools/bundle-native.py` builds a distribution bundle: the shared library with
+its runtime libraries, every licence text and a record of the sources and
+packages, for Windows x86-64 and Linux x86-64; see [distribution](distribution.md).
+`tools/build-native.py` alone selects upstream dependencies but collects no
+notices. Review the licenses of the actual BLAS, Fortran/OpenMP runtime, HDF5,
+ddX and other libraries you ship; optional or transitive components have their
+own terms. These notes describe the shipped license texts and are not a
+substitute for reviewing your distribution against them.

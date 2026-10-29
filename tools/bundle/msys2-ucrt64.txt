@@ -1,0 +1,19 @@
+# MSYS2 UCRT64 toolchain of the Windows x86-64 tblite bundle (tools/bundle-native.py).
+# One package per line: name, version, SHA-256 of
+# https://repo.msys2.org/mingw/ucrt64/<name>-<version>-any.pkg.tar.zst
+# The compiler, runtime libraries, linker, C runtime and OpenBLAS decide the
+# shipped binaries; meson, ninja and pkgconf drive the build. Other packages
+# follow from pacman's dependency resolution.
+mingw-w64-ucrt-x86_64-gcc 16.2.0-3 1cd86e5817f6e0d7310d7cb2bb91f4a55e1256cb4ce580a0c5f2a74e013d144d
+mingw-w64-ucrt-x86_64-gcc-fortran 16.2.0-3 2e534e8d45158425d80da00840bd712795d9c64e9c721fadd52cc8504d6817f7
+mingw-w64-ucrt-x86_64-gcc-libs 16.2.0-3 5763fabf86fa13a4449ee765006d3446384ed66af7bf827459710eb777e0b11c
+mingw-w64-ucrt-x86_64-gcc-libgfortran 16.2.0-3 d4780f5a3d836cc68b7f99ce632bfaec1a15b79abc71dabfabeb3beb73eb778f
+mingw-w64-ucrt-x86_64-binutils 2.47-3 ba98af202fe71e0884bb51daf78ce10bd8a51c69528c700dcf5855e6ece06dd3
+mingw-w64-ucrt-x86_64-crt 14.0.0.r353.g6df76fa52-4 7052f930a137104483280d5fd557a026df94f78179eaf1df869e7e712123e891
+mingw-w64-ucrt-x86_64-headers 14.0.0.r353.g6df76fa52-2 b66bc992ff1340f6d7eff1539b4243b01d937f05e26bb44879650171a2fd3c1a
+mingw-w64-ucrt-x86_64-winpthreads 14.0.0.r353.g6df76fa52-2 55663ad02cb46244221297ca72ee0ac07ba748a05989d381deb7c5c5ac518614
+mingw-w64-ucrt-x86_64-libwinpthread 14.0.0.r353.g6df76fa52-2 ec1a46e63d424a90992a14c0996c0b5bb17370af6044380b590d05f725eeb43f
+mingw-w64-ucrt-x86_64-openblas 0.3.34-1 d9e14c9440d9aa70b6d09cdf0b8117995d181ced9c3d233ad7b62a907982add5
+mingw-w64-ucrt-x86_64-meson 1.12.0-1 b467221a46dbc829e3ec23b80e5741d89aa630817f4147691e6f2dd529a231ac
+mingw-w64-ucrt-x86_64-ninja 1.13.2-1 514685563a84a6ebddbbeee7bbafae5f3994e363c49364fc4507fabcaa049f2b
+mingw-w64-ucrt-x86_64-pkgconf 1~3.0.5-1 79f559fae9283e7934b95810b18185e46fba43e455bd9ef936728907cc7ca4a7

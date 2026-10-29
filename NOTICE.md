@@ -21,6 +21,11 @@ from grimme-lab/mstore, revision `663245d739be0123da61c917e55116b0c3db4c74`,
 `src/mstore/mb16_43.f90`. That source and the transcription are Apache-2.0;
 see `benchmarks/mb16-43/README.md` for provenance and `LICENSE-APACHE` for terms.
 
+`tools/bundle/licenses/gcc/` holds GCC 16.2.0's `COPYING3` (GPL v3),
+`COPYING.RUNTIME` (GCC Runtime Library Exception 3.1) and `COPYING.LIB`
+(LGPL v2.1, for libquadmath), unmodified, for the runtime bundles of
+`tools/bundle-native.py`.
+
 The native source and binaries downloaded/built by the installation tool live
 in ignored `.native/` directories and are not part of either Rust crate's
 source package. Preserve each dependency's own notices if distributing them.
