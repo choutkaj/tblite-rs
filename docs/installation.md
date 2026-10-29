@@ -173,7 +173,8 @@ returns an intentional build error.
 The default installer enables ddX and HDF5 and disables TREXIO. Pass
 `--trexio enabled` after installing a compatible TREXIO library to enable its
 wavefunction output. TREXIO output is exposed but was not exercised locally.
-Use `--minimal` to disable ddX and HDF5; other features remain available.
+Use `--minimal` to disable ddX and HDF5, or `--hdf5 disabled` for HDF5 alone;
+other features remain available.
 
 ```sh
 python3 tools/build-native.py --prefix "$PWD/.native/minimal" \
