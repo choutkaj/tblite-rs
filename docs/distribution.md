@@ -8,15 +8,26 @@ next to its executable, so tblite stays a separate, replaceable shared library.
 Never enable the `static` feature for a distributed application; see
 [licensing](licensing.md).
 
-| Platform | Toolchain | Runs on |
-| --- | --- | --- |
-| Windows x86-64 | MSYS2 UCRT64 GCC 16.2 and OpenBLAS, pinned in `tools/bundle/msys2-ucrt64.txt` | Windows 10 and later (Universal C Runtime) |
-| Linux x86-64 | conda-forge GCC 16.2 and OpenBLAS against the glibc 2.28 sysroot, pinned in `tools/bundle/conda-linux-64.txt` | glibc 2.28 and later: RHEL, Rocky and Alma 8 and 9, Ubuntu 20.04 and later |
+| Platform | Bundle | Toolchain | Runs on |
+| --- | --- | --- | --- |
+| Windows x86-64 | `windows-x86_64` | MSYS2 UCRT64 GCC 16.2 and OpenBLAS, pinned in `tools/bundle/msys2-ucrt64.txt` | Windows 10 and later (Universal C Runtime) |
+| Linux x86-64 | `linux-x86_64` | conda-forge GCC 16.2 and OpenBLAS against the glibc 2.28 sysroot, pinned in `tools/bundle/conda-linux-64.txt` | glibc 2.28 and later: RHEL, Rocky and Alma 8 and 9, Ubuntu 20.04 and later |
+| macOS arm64 | `macos-aarch64` | conda-forge GNU Fortran 16.2, Clang 23.1 and OpenBLAS, pinned in `tools/bundle/conda-osx-arm64.txt` | macOS 11 and later on Apple silicon |
 
-macOS is not covered yet. Both platforms build the same sources as
-`tools/build-native.py`: the tblite 0.8.0 release with the dependency commits of
-its Meson wraps and the C API visibility fix (see [installation](installation.md)),
-with ddX and without HDF5 or TREXIO.
+All three build the same sources as `tools/build-native.py`: the tblite 0.8.0
+release with the dependency commits of its Meson wraps and the C API visibility
+fix (see [installation](installation.md)), with ddX and without HDF5 or TREXIO.
+
+The macOS bundle targets macOS 11.0 (`MACOSX_DEPLOYMENT_TARGET=11.0`), the first
+release for Apple silicon. conda-forge builds its osx-arm64 packages for the same
+version. It uses OpenBLAS rather than Accelerate: tblite's Meson build supports
+OpenBLAS directly but has no Accelerate option, and OpenBLAS keeps the build,
+the checks and the numerical results consistent across the three platforms.
+
+`--archive DIR` also writes `DIR/tblite-0.8.0-<bundle>.tar.gz`. The archive holds
+one folder, named after the bundle (for example `macos-aarch64/`), with the
+layout below. CI builds the three archives on every commit and keeps them as
+run artifacts; a release attaches those of its commit.
 
 ## Layout
 
@@ -27,22 +38,27 @@ lib/                Windows: libtblite-0.dll, libopenblas.dll, libgfortran-5.dll
                       libwinpthread-1.dll, and tblite.lib (MSVC import library)
                     Linux: libtblite.so.0 (and the libtblite.so link), libopenblas.so.0,
                       libgfortran.so.5, libquadmath.so.0, libgomp.so.1, libgcc_s.so.1
+                    macOS: libtblite.0.dylib (and the libtblite.dylib link),
+                      libopenblas.0.dylib, libgfortran.5.dylib, libquadmath.0.dylib,
+                      libgcc_s.1.1.dylib, libomp.dylib
 lib/pkgconfig/      tblite.pc, relocatable
 licenses/           tblite, dftd4, s-dftd3, ddx, multicharge, mctc-lib, toml-f, jonquil,
-                    gcc, openblas, and winpthreads on Windows
+                    gcc, openblas, winpthreads (Windows), llvm-openmp (macOS)
 SOURCES.md          every file's SHA-256 and licence; every source and package
 ```
 
 The bundle is also an installation prefix: set `TBLITE_DIR` to it to build
-against it. `include/`, `tblite.lib`, `libtblite.so` and `pkgconfig/` are needed
-only for building. Linux libraries keep their sonames and each has the RUNPATH
-`$ORIGIN`, so they find each other in `lib/`.
+against it. `include/`, `tblite.lib`, the `libtblite.so` and `libtblite.dylib`
+links and `pkgconfig/` are needed only for building. Linux libraries keep their
+sonames and each has the RUNPATH `$ORIGIN`, so they find each other in `lib/`.
+On macOS, each library's install name is `@rpath/` and its file name, and its
+only rpath is `@loader_path`, which does the same.
 
 ## Building a bundle
 
-Both platforms need Git and Python 3.10 or later. The output directory must be
+All platforms need Git and Python 3.10 or later. The output directory must be
 new or empty; the work directory (default `.native/bundle`) keeps sources, the
-build tree and, on Linux, the toolchain, so a second run is quick.
+build tree and, on Linux and macOS, the toolchain, so a second run is quick.
 
 ### Windows x86-64
 
@@ -74,19 +90,44 @@ packages, each verified by SHA-256) in the work directory and compiles with it
 against glibc 2.28. Pass `--micromamba` if it is not on `PATH`, or `--toolchain`
 to keep the toolchain elsewhere.
 
+### macOS arm64
+
+On an Apple silicon Mac, install the Xcode Command Line Tools
+(`xcode-select --install`), for the macOS SDK and `codesign`, and micromamba.
+Use an arm64 Python, not one running under Rosetta:
+
+```sh
+python3 tools/bundle-native.py --out .native/tblite-macos-aarch64
+```
+
+The script creates the conda-forge toolchain from the lock (about 200 MB of
+packages, each verified by SHA-256) and compiles against the SDK that `xcrun`
+reports. `--micromamba` and `--toolchain` work as on Linux.
+
 ### What the script checks
 
 - the toolchain matches its pins;
 - tblite links exactly the recorded subprojects;
 - every runtime dependency is either a system library (Windows: `KERNEL32`,
-  `ADVAPI32`, the UCRT `api-ms-win-crt-*` sets; Linux: glibc) or a recorded
-  runtime library with a known licence, and every bundled library finds its
-  dependencies in `lib/`;
+  `ADVAPI32`, the UCRT `api-ms-win-crt-*` sets; Linux: glibc; macOS:
+  `/usr/lib` and `/System/Library`) or a recorded runtime library with a known
+  licence, and every bundled library finds its dependencies in `lib/`;
 - all 123 C API functions are exported;
 - Linux: no library needs a glibc symbol version newer than 2.28;
+- macOS, with `otool -L` and `otool -l`: each library's install name is
+  `@rpath/` and its file name, its only rpath is `@loader_path`, and it links
+  only system libraries and the `@rpath/` names of bundled ones, so no absolute
+  build path remains. Each library is also arm64 only, declares macOS 11.0 or
+  earlier, and has a valid ad hoc signature;
 - it loads the bundle in a fresh process without any library search path, calls
-  `tblite_get_version`, checks that every bundled library came from `lib/`, and
-  that OpenBLAS selects its kernels at run time (`DYNAMIC_ARCH`).
+  `tblite_get_version`, and checks that every bundled library came from `lib/`.
+  It also checks which kernels OpenBLAS uses: on Windows and Linux it selects
+  them at run time (`DYNAMIC_ARCH`); on macOS it has those for Apple silicon
+  (`VORTEX`).
+
+`install_name_tool` changes the macOS libraries' install names and rpaths. Each
+library is then signed again ad hoc (`codesign --force -s -`), because Apple
+silicon loads only signed code. The bundle has no other signature.
 
 ## Running against a bundle
 
@@ -97,14 +138,21 @@ to keep the toolchain elsewhere.
   directory and on `PATH`, not in the DLL's directory. Place the DLLs next to
   the executable, or delay-load `libtblite-0.dll` and register `lib\` with
   `SetDefaultDllDirectories` and `AddDllDirectory` before the first tblite call.
+- **macOS:** give the executable the rpath `@executable_path/lib`, for example
+  `RUSTFLAGS='-C link-arg=-Wl,-rpath,@executable_path/lib'`. Sign the libraries
+  with the application's identity before signing the application: with the
+  hardened runtime, macOS loads only libraries signed by the same team.
 - **Threads:** `OMP_NUM_THREADS` sets tblite's OpenMP threads and
   `OPENBLAS_NUM_THREADS` OpenBLAS's. Windows' OpenBLAS uses OpenMP
-  (`MAX_THREADS=64`), Linux's its own threads (`MAX_THREADS=128`). Set both.
-- **CPUs:** the libraries target the x86-64 baseline; OpenBLAS picks optimized
-  kernels for the CPU it runs on.
+  (`MAX_THREADS=64`), Linux's its own threads (`MAX_THREADS=128`). On macOS,
+  tblite and OpenBLAS share LLVM's OpenMP runtime, `libomp`. Set both.
+- **CPUs:** the Windows and Linux libraries target the x86-64 baseline, and
+  OpenBLAS picks optimized kernels for the CPU it runs on. The macOS libraries
+  run on every Apple silicon processor.
 
-For tests, set `TBLITE_DIR` to the bundle and put `lib/` on `PATH` (Windows) or
-`LD_LIBRARY_PATH` (Linux).
+For tests, set `TBLITE_DIR` to the bundle, then put `lib/` on `PATH` (Windows) or
+`LD_LIBRARY_PATH` (Linux). On macOS, give the test executables the rpath
+`$TBLITE_DIR/lib` through both `RUSTFLAGS` and `RUSTDOCFLAGS`.
 
 ## Licences and obligations
 
@@ -114,7 +162,8 @@ For tests, set `TBLITE_DIR` to the bundle and put `lib/` on `PATH` (Windows) or
 | multicharge, mctc-lib | Apache-2.0 | compiled into the tblite library |
 | toml-f, jonquil | Apache-2.0 OR MIT | compiled into the tblite library |
 | libquadmath | LGPL-2.1-or-later | own shared library |
-| libgcc_s, libgfortran, libgomp | GPL-3.0-or-later WITH GCC-exception-3.1 | own shared libraries |
+| libgcc_s, libgfortran, and libgomp on Windows and Linux | GPL-3.0-or-later WITH GCC-exception-3.1 | own shared libraries |
+| LLVM OpenMP, libomp (macOS) | Apache-2.0 WITH LLVM-exception | own shared library |
 | OpenBLAS (with its LAPACK) | BSD-3-Clause | own shared library |
 | winpthreads (Windows) | MIT and BSD-3-Clause | own shared library |
 
@@ -141,9 +190,12 @@ These notes describe the bundle's licences; they are not legal advice.
 - **Linux:** solve again from the specs in the header of
   `tools/bundle/conda-linux-64.txt` and replace its package lines with the new
   environment's `URL#sha256:HASH` lines.
+- **macOS:** do the same with `tools/bundle/conda-osx-arm64.txt`. Set
+  `CONDA_OVERRIDE_OSX=11.0` for the solve, so that no package needs a newer
+  macOS. On another system, also pass `--platform osx-arm64`.
 - **Windows:** install the new package versions in MSYS2 and replace their lines
   in `tools/bundle/msys2-ucrt64.txt` with the version and the SHA-256 of the
   package file (in `/var/cache/pacman/pkg` after installation).
 
-Then build both bundles, run the tests against them, and review the changes to
-`SOURCES.md`.
+Then build all three bundles, run the tests against them, and review the
+changes to `SOURCES.md`.

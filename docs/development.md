@@ -10,8 +10,9 @@ the MB16-43 parity benchmark passed on both.
 
 CI runs the other configurations on every commit: dynamic and static tblite
 on Linux (with ddX/HDF5 enabled and with both disabled) and on macOS ARM64 and
-x86-64 (enabled), and an MSYS2 UCRT64 DLL on Windows. It also checks the
-Rust 1.85 build. The
+x86-64 (enabled), and an MSYS2 UCRT64 DLL on Windows. It builds the three
+runtime bundles, runs the tests and examples against each, and runs the MB16-43
+benchmark against the macOS bundle. It also checks the Rust 1.85 build. The
 static executable's dependency list is checked to confirm it does not load the
 shared tblite. TREXIO-enabled output and cross-compilation are not exercised.
 Each release must have a successful CI run for its own commit; see
@@ -86,5 +87,5 @@ the implementation; see [the documented errata](safety.md).
 
 This workspace exposes the complete public C API for the supported release
 series. Further Fortran capabilities require upstream C API extensions or a
-separate shim. Optimizers, molecular dynamics drivers, prebuilt binary
-distribution and Cargo-triggered native compilation are separate work.
+separate shim. Optimizers, molecular dynamics drivers and Cargo-triggered
+native compilation are separate work.

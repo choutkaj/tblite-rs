@@ -1,8 +1,14 @@
-# Publishing 0.1.0
+# Publishing a release
 
-Release `tblite-sys` and `tblite` together at version **0.1.0**, then create the
-GitHub release from the same commit. The commands below use PowerShell and are
-intended to be run one step at a time. Stop if any command fails.
+Release `tblite-sys` and `tblite` together at the workspace version. Then
+create the GitHub release from the same commit, with the three runtime bundles
+that CI built from it. The commands below use PowerShell. Run them one step at
+a time and stop if any command fails. Set the version once:
+
+```powershell
+$version = '0.2.0'
+$tag = "v$version"
+```
 
 ## Accounts and tools
 
@@ -10,74 +16,86 @@ intended to be run one step at a time. Stop if any command fails.
   The library's minimum supported Rust version remains 1.85.
 - Sign in to [crates.io](https://crates.io), verify your account email, and
   create an [API token](https://crates.io/settings/tokens) that can publish
-  both new crates. Run `cargo login --registry crates-io` and paste the token
+  both crates. Run `cargo login --registry crates-io` and paste the token
   at its prompt. Keep the token out of commands, source files and chat.
 - Run `gh auth login` if needed, then `gh auth status` to check GitHub access
   to `choutkaj/tblite-rs`.
-- Keep the native tblite 0.7.x installation available while packaging and
-  publishing. Both commands compile the packaged code.
 
-## Commit the release preparation
+## Prepare the release
 
-Start in the repository on `main`, with only the intended release changes.
-Review the diff, then commit the prepared files:
+On a branch, update:
 
-```powershell
-git diff --check
-git status --short
-git diff
-git add README.md CHANGELOG.md tblite/README.md tblite-sys/README.md docs/development.md docs/installation.md docs/releasing.md docs/releases/v0.1.0.md .github/workflows/ci.yml
-git commit -m "Prepare 0.1.0 release"
-git push origin main
-```
+- the workspace version and the `tblite-sys` dependency version in `Cargo.toml`,
+  then `Cargo.lock` with `cargo update --workspace`;
+- the versions in `README.md`, `tblite/README.md` and `tblite-sys/README.md`;
+- `CHANGELOG.md`: rename `Unreleased` to the version;
+- the release notes, `docs/releases/$tag.md`.
 
-If using a pull request, merge the preparation and update the local `main`
-checkout before continuing. A tag must identify the commit actually published.
+Merge the branch into `main`, then update the local `main` checkout. A tag must
+identify the commit actually published.
 
 ## Require CI for that commit
 
 ```powershell
-$releaseCommit = git rev-parse HEAD
-$releaseRun = gh run list --commit $releaseCommit --workflow ci.yml --limit 1 --json databaseId --jq '.[0].databaseId'
-if (-not $releaseRun) { throw 'No CI run yet; retry after GitHub starts it.' }
-gh run watch $releaseRun --exit-status
-if ($LASTEXITCODE -ne 0) { throw 'Release CI did not pass.' }
+git switch main
+git pull --ff-only
 if (git status --porcelain) { throw 'The release checkout must be clean.' }
+$releaseCommit = git rev-parse HEAD
+$releaseRun = gh run list --repo choutkaj/tblite-rs --commit $releaseCommit --workflow ci.yml --event push --limit 1 --json databaseId --jq '.[0].databaseId'
+if (-not $releaseRun) { throw 'No CI run yet; retry after GitHub starts it.' }
+gh run watch $releaseRun --repo choutkaj/tblite-rs --exit-status
+if ($LASTEXITCODE -ne 0) { throw 'Release CI did not pass.' }
 ```
 
-Require all five platform jobs to pass. Linux/full also runs
+All eight jobs must pass. Linux/full also runs
 `cargo publish --locked --workspace --dry-run`, which verifies both packages
 without uploading. No Cargo publishing token is needed for that CI step.
 
-## Configure the native library
+## Collect the runtime bundles
 
-For the existing verified Windows installation in this checkout:
+The three bundle jobs keep `tblite-<tblite version>-<platform>.tar.gz` as run
+artifacts. Download them and check that each was built from the release
+commit:
 
 ```powershell
-$releaseManifest = (Resolve-Path Cargo.toml).Path
-$env:TBLITE_DIR = (Resolve-Path .native/install-win).Path
-$releaseRuntime = (Resolve-Path .native/msys64/ucrt64/bin).Path
-$env:PATH = "$env:TBLITE_DIR\bin;$releaseRuntime;$env:PATH"
-$env:OMP_NUM_THREADS = '1'
-$env:OPENBLAS_NUM_THREADS = '1'
+$bundles = Join-Path $env:TEMP "tblite-rs-$version-bundles"
+if (Test-Path $bundles) { throw "$bundles exists; remove it first." }
+gh run download $releaseRun --repo choutkaj/tblite-rs --pattern 'bundle-*' --dir $bundles
+$archives = @(Get-ChildItem $bundles -Recurse -Filter 'tblite-*.tar.gz')
+if ($archives.Count -ne 3) { throw 'Expected three bundle archives.' }
+foreach ($archive in $archives) {
+    $platform = $archive.Name -replace '^tblite-[0-9.]+-(.+)\.tar\.gz$', '$1'
+    $sources = (tar -xOzf $archive.FullName "$platform/SOURCES.md") -join "`n"
+    if ($sources -notmatch "at ``$releaseCommit``\.") { throw "$($archive.Name) is not from $releaseCommit." }
+    tar -xzf $archive.FullName -C $bundles
+}
+$archives | Select-Object Name, Length
 ```
-
-For another checkout or machine, use the paths from
-[installation.md](installation.md). On Linux/macOS, set `TBLITE_DIR` and the
-appropriate loader path as described there; the Cargo and Git commands are
-otherwise the same.
 
 ## Verify and publish to crates.io
 
 This machine has an unrelated Cargo patch in the parent `repos/.cargo`
 configuration. Run Cargo from the temporary directory with an explicit manifest
 path to avoid inheriting that parent configuration. Keep this PowerShell session
-open so the native paths and `$releaseManifest` remain set.
+open so the paths and variables remain set. Packaging and publishing compile
+the packaged code, so first point them at the Windows bundle:
 
-First verify both crates together. This also works before `tblite-sys` exists
-on crates.io because Cargo stages workspace dependencies during the dry-run.
-Use registry access: the offline workspace package check encountered Cargo's
-internal `no hash listed for tblite-sys` error during release preparation.
+```powershell
+$releaseManifest = (Resolve-Path Cargo.toml).Path
+$env:TBLITE_DIR = Join-Path $bundles 'windows-x86_64'
+$env:PATH = "$env:TBLITE_DIR\lib;$env:PATH"
+$env:OMP_NUM_THREADS = '1'
+$env:OPENBLAS_NUM_THREADS = '1'
+```
+
+On Linux or macOS, set `TBLITE_DIR` to that platform's bundle and the loader
+path as described in [distribution.md](distribution.md); the Cargo and Git
+commands are otherwise the same.
+
+First verify both crates together. Cargo stages workspace dependencies during
+the dry-run, so this works before the new `tblite-sys` exists on crates.io.
+Use registry access: the offline workspace package check fails with Cargo's
+internal `no hash listed for tblite-sys` error.
 
 ```powershell
 Push-Location $env:TEMP
@@ -107,37 +125,34 @@ try {
 ```
 
 If an upload succeeds but waiting for the index times out, check the version on
-crates.io before retrying. Once `tblite-sys` 0.1.0 exists, resume with the `tblite`
-dry-run and publish commands; do not upload the raw crate again. If code needs
-to change after a successful upload, prepare a new version for that crate.
-Do not use `--no-verify` or `--allow-dirty` for the actual release.
+crates.io before retrying. Once the new `tblite-sys` exists, resume with the
+`tblite` dry-run and publish commands; do not upload the raw crate again. If
+code needs to change after a successful upload, prepare a new version for that
+crate. Do not use `--no-verify` or `--allow-dirty` for the actual release.
 
 ## Tag and publish on GitHub
 
-After both crates are published, return to the repository and tag the verified
-commit. The checked-in notes are ready to use as the GitHub release body.
+After both crates are published, tag the verified commit and create the release
+with the bundles attached. The checked-in notes are the release body.
 
 ```powershell
 if ((git rev-parse HEAD) -ne $releaseCommit) { throw 'HEAD changed since verification.' }
 if (git status --porcelain) { throw 'The release checkout must be clean.' }
-git tag -a v0.1.0 $releaseCommit -m "tblite-rs 0.1.0"
+git tag -a $tag $releaseCommit -m "tblite-rs $version"
 if ($LASTEXITCODE -ne 0) { throw 'Tag creation failed.' }
-git push origin refs/tags/v0.1.0
+git push origin "refs/tags/$tag"
 if ($LASTEXITCODE -ne 0) { throw 'Tag push failed.' }
-gh release create v0.1.0 --repo choutkaj/tblite-rs --verify-tag --title "tblite-rs 0.1.0" --notes-file docs/releases/v0.1.0.md
+gh release create $tag --repo choutkaj/tblite-rs --verify-tag --title "tblite-rs $version" --notes-file "docs/releases/$tag.md" $archives.FullName
 ```
 
-GitHub supplies source archives for the tag. This release does not ship native
-binaries. `--verify-tag` requires the pushed tag instead of creating one from
-whatever happens to be the latest `main` commit.
+GitHub supplies source archives for the tag. `--verify-tag` requires the pushed
+tag instead of creating one from whatever happens to be the latest `main`
+commit.
 
-Check the [GitHub release](https://github.com/choutkaj/tblite-rs/releases/tag/v0.1.0),
-[`tblite-sys` 0.1.0](https://crates.io/crates/tblite-sys/0.1.0), and
-[`tblite` 0.1.0](https://crates.io/crates/tblite/0.1.0).
-Allow docs.rs time to build, then check the
-[`tblite` API docs](https://docs.rs/tblite/0.1.0/tblite/) and
-[`tblite-sys` API docs](https://docs.rs/tblite-sys/0.1.0/tblite_sys/).
+Check the GitHub release and its three assets, then `tblite-sys` and `tblite`
+on crates.io. Allow docs.rs time to build, then check both crates' API docs.
 
 References: [Cargo publishing guide](https://doc.rust-lang.org/cargo/reference/publishing.html),
 [`cargo publish`](https://doc.rust-lang.org/cargo/commands/cargo-publish.html),
-[`gh release create`](https://cli.github.com/manual/gh_release_create).
+[`gh release create`](https://cli.github.com/manual/gh_release_create),
+[`gh run download`](https://cli.github.com/manual/gh_run_download).

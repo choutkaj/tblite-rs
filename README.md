@@ -63,9 +63,13 @@ cargo doc --workspace --no-deps --open
 The compatibility range is **0.8.x**, checked during library discovery and
 before safe native object construction. Optional ddX, HDF5, TREXIO and MPI
 support depends on the installed library: `tblite::has_feature` reports it, and
-the same Rust methods return native errors when a capability is absent. Fortran-only interfaces, optimization/MD drivers,
-automatic Cargo native builds, Windows static linking and prebuilt binaries are
-outside this release.
+the same Rust methods return native errors when a capability is absent.
+Fortran-only interfaces, optimization/MD drivers, automatic Cargo native builds
+and Windows static linking are outside this release.
+
+GitHub releases attach redistributable tblite runtime bundles for Windows
+x86-64, Linux x86-64 and macOS arm64: the shared library, its runtime libraries
+and their licences. See [distribution](docs/distribution.md).
 
 Original Rust code is **MIT OR Apache-2.0**. tblite and copied upstream materials
 remain **LGPL-3.0-or-later**; see [NOTICE.md](NOTICE.md).
