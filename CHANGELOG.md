@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
-Both crates are at 0.2.0 and require native tblite **0.8.x**. They reject
+Both crates require native tblite **0.8.x**. They reject
 tblite 0.7.x at build time and at run time.
 
 - Raw bindings to all 123 public C functions in tblite 0.8.0.
@@ -19,9 +19,11 @@ tblite 0.7.x at build time and at run time.
   that release. It still declares 13 C entry points `PUBLIC`; tblite 0.8.0
   keeps them `PRIVATE`.
 - `tools/bundle-native.py` builds a redistributable tblite 0.8.0 runtime bundle
-  for Windows x86-64 (MSYS2 UCRT64) and Linux x86-64 (conda-forge, glibc 2.28)
-  from pinned toolchains: the shared library, its runtime libraries, licence
-  texts and `SOURCES.md`. See [distribution](docs/distribution.md).
+  for Windows x86-64 (MSYS2 UCRT64), Linux x86-64 (conda-forge, glibc 2.28)
+  and macOS arm64 (conda-forge, macOS 11) from pinned toolchains: the shared
+  library, its runtime libraries, licence texts and `SOURCES.md`. `--archive`
+  packs a bundle as `tblite-0.8.0-<platform>.tar.gz`, and CI builds all three.
+  See [distribution](docs/distribution.md).
 - `tools/build-native.py --hdf5 disabled` builds without HDF5 and keeps ddX.
 
 Results change slightly from tblite 0.7.0. Across the 43 MB16-43 structures,
@@ -36,6 +38,9 @@ the largest changes are:
 GFN2-xTB partial charges change by up to 1.6e-6 e and dipole components by up
 to 8.3e-6 e Bohr. The Rust and native results change by the same amounts on
 Windows and Linux.
+
+See the [release notes](docs/releases/v0.2.0.md) for the runtime bundles and
+validation.
 
 ## 0.1.0
 

@@ -28,7 +28,8 @@ information where GPL section 6 applies.
 
 `tools/bundle-native.py` builds a distribution bundle: the shared library with
 its runtime libraries, every licence text and a record of the sources and
-packages, for Windows x86-64 and Linux x86-64; see [distribution](distribution.md).
+packages, for Windows x86-64, Linux x86-64 and macOS arm64; see
+[distribution](distribution.md).
 `tools/build-native.py` alone selects upstream dependencies but collects no
 notices. Review the licenses of the actual BLAS, Fortran/OpenMP runtime, HDF5,
 ddX and other libraries you ship; optional or transitive components have their

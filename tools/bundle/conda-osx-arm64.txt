@@ -1,0 +1,72 @@
+# conda-forge toolchain of the macOS arm64 tblite bundle (tools/bundle-native.py).
+# Every package is pinned by URL and SHA-256; micromamba verifies both.
+# Solved on 2026-11-09 from these specs, with CONDA_OVERRIDE_OSX=11.0
+# (micromamba create --override-channels -c conda-forge --platform osx-arm64):
+#   gfortran_osx-arm64=16.2.0 clang_osx-arm64=23.1.4 clangxx_osx-arm64=23.1.4
+#   libopenblas=*=openmp* openblas=*=openmp* meson ninja pkg-config python
+# To update, solve again from these specs and regenerate this file from the new
+# environment's conda-meta records (URL#sha256:HASH, one per line).
+@EXPLICIT
+https://conda.anaconda.org/conda-forge/osx-arm64/_openmp_mutex-4.5-8_kmp_llvm.conda#sha256:c7c98ce74f6a7ff25aaa4706d06fa41d63a333add4d697b73aa4d8d2d7ad7651
+https://conda.anaconda.org/conda-forge/osx-arm64/bzip2-1.0.8-h4e30115_10.conda#sha256:8ec22f0ba25cbfc2e64d70cf29459eccd7ffdf6436f6a6ff15bbfef799f7d4f6
+https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.10.23-hbd8a1cb_0.conda#sha256:95619b9c1184be7175392eeb0ee7eeb5ccf25d280951f4225f2d62e725790be3
+https://conda.anaconda.org/conda-forge/osx-arm64/cctools-1030.6.3-llvm23_1_h54b4f4b_7.conda#sha256:8381a7ec65cab8a622afab728785121f36b564e20e0dc99e0059425ee0f755c3
+https://conda.anaconda.org/conda-forge/osx-arm64/cctools_impl_osx-arm64-1030.6.3-llvm23_1_hf5e010b_7.conda#sha256:c1382d863b5c16de1d90779e861144fa6c6b91505e03a93ef27c46c039395b12
+https://conda.anaconda.org/conda-forge/osx-arm64/cctools_osx-arm64-1030.6.3-llvm23_1_h54b4f4b_7.conda#sha256:c8198297cbcbd07dd5d67879d4b6d9d75d98c9770816d8b7c3857da6045caa53
+https://conda.anaconda.org/conda-forge/osx-arm64/clang-23-23.1.4-default_hde1afa0_1.conda#sha256:776d01b12dcd53e6e3342950eea26c3eda9659687a2b1181e4011cf0fd8280fe
+https://conda.anaconda.org/conda-forge/osx-arm64/clang-23.1.4-default_cfg_h10b8b15_1.conda#sha256:8834715b55defc12ab18325ee58fc4591e906e29a0f2f07eaccd9cd2bbb2c350
+https://conda.anaconda.org/conda-forge/osx-arm64/clang-scan-deps-23.1.4-default_h8bbc02d_1.conda#sha256:a8e7bff29c52f3711148bffdda8a0ba87f4deea70ed23a9acd4b585d4fca1cd9
+https://conda.anaconda.org/conda-forge/osx-arm64/clang_impl_osx-arm64-23.1.4-default_h8bbc02d_1.conda#sha256:42f36e7de17557c254f732c297942d380d579faec409122778b7f0517bb46fc2
+https://conda.anaconda.org/conda-forge/osx-arm64/clang_osx-arm64-23.1.4-h2adb7b3_35.conda#sha256:575c6d2d5acb874cc9118d8e7c1bc48b250a34776330d763407fcd84af154a7a
+https://conda.anaconda.org/conda-forge/osx-arm64/clangxx_impl_osx-arm64-23.1.4-default_h8b65321_1.conda#sha256:51cc7010478e47bef2229b5966bd099b1136a680852f75973aa97b7301687e27
+https://conda.anaconda.org/conda-forge/osx-arm64/clangxx_osx-arm64-23.1.4-h2adb7b3_35.conda#sha256:7d7ab960bc3a0316a5ecedea9094d3f9fec816708c6ddf54e5ec17b390e899c0
+https://conda.anaconda.org/conda-forge/osx-arm64/compiler-rt-23.1.4-hce30654_0.conda#sha256:06c4dab29f41569d5f6f757cef98d1c862563b7daa23f32e2af49bf375f2c0c4
+https://conda.anaconda.org/conda-forge/osx-arm64/compiler-rt23-23.1.4-hdb3d66b_0.conda#sha256:b5bfb04bc32e3de800b0d9dc500cb0a319466a2036a19d986a05565750d1edac
+https://conda.anaconda.org/conda-forge/noarch/compiler-rt23_osx-arm64-23.1.4-hb8825d9_0.conda#sha256:2e3bbefd07a8a21ea498a1451acb100f05d0147729ceff0944edeffce18224dc
+https://conda.anaconda.org/conda-forge/noarch/compiler-rt_osx-arm64-23.1.4-hce30654_0.conda#sha256:19eb096e1e7fe3c75306b04f2568330f3653499a28f5313c3c122ff5fa4e981e
+https://conda.anaconda.org/conda-forge/osx-arm64/gcc_impl_osx-arm64-16.2.0-hff32234_7.conda#sha256:8860d7eed6ea97df296c106a629b2aeaf84ecadef430bb20f5e6a119f8e4d2aa
+https://conda.anaconda.org/conda-forge/osx-arm64/gfortran_impl_osx-arm64-16.2.0-h9997696_7.conda#sha256:b77d0b861dbecf40db4465b0090fece19bcf82b20e8ebbc6f599af486569979e
+https://conda.anaconda.org/conda-forge/osx-arm64/gfortran_osx-arm64-16.2.0-he6f484c_2.conda#sha256:1207cf91a212dd0b9486c9702ff8227f61ff85c0a9a5d7f819a7471ee238b9f4
+https://conda.anaconda.org/conda-forge/osx-arm64/ld64-956.6-llvm23_1_hd841b0c_7.conda#sha256:e2962e93cc136cecf410e0b2831d3121620074e3cca992a6707f8bff09b8bdc5
+https://conda.anaconda.org/conda-forge/osx-arm64/ld64_osx-arm64-956.6-llvm23_1_hc8058f9_7.conda#sha256:645c246e045af89a6c710964f9f7a1e4a83e0e2cad38e21ffd005eca3553f044
+https://conda.anaconda.org/conda-forge/osx-arm64/libclang-cpp23.1-23.1.4-default_h8bbc02d_1.conda#sha256:467c95456239410d02575de3b814dc6512ae19ed00a540a719862cd83d14aefb
+https://conda.anaconda.org/conda-forge/osx-arm64/libclang13-23.1.4-default_hde1afa0_1.conda#sha256:48b0c7873ad7d9631e7122a19c9c2456e22ab8feb428bbc3dded18fb01e957d3
+https://conda.anaconda.org/conda-forge/osx-arm64/libcompiler-rt-23.1.4-hdb3d66b_0.conda#sha256:939ba250a11438ae42c5b861d004cc2caceb6437fc1a73f39d0a780d28231d1e
+https://conda.anaconda.org/conda-forge/osx-arm64/libcxx-23.1.5-h55c6f16_0.conda#sha256:b4b1fd6107980fed8b4e7ae8b08257b50c0f88b8771a530dc4a561f5d796457b
+https://conda.anaconda.org/conda-forge/osx-arm64/libcxx-devel-23.1.5-h6dc3340_0.conda#sha256:39dc0dd89cf97bf6ea6d4c31d42a437512bce9748409170e71d5b47832f984f6
+https://conda.anaconda.org/conda-forge/noarch/libcxx-headers-23.1.5-h707e725_0.conda#sha256:bd3ab5ebe696000bb4b837571eff02c5bc2b9582932b67b5b9faa90488c990d7
+https://conda.anaconda.org/conda-forge/osx-arm64/libedit-3.1.20260512-pl5321h26f1114_0.conda#sha256:5692a969e49b200c7874d1e869d281753361980b2ecfe9191b571d7e550f8b92
+https://conda.anaconda.org/conda-forge/osx-arm64/libexpat-2.9.0-h6111c0a_0.conda#sha256:b155c524118f751ad8b1c823397bab8b7f715f7e3ca10479925867a7e23e7e9d
+https://conda.anaconda.org/conda-forge/osx-arm64/libffi-3.7.0-h47dc5ef_1.conda#sha256:2783389a7b9dda04c62cc54c6bbeb03dd3cef24b3fc642715d02a3fa19464a9a
+https://conda.anaconda.org/conda-forge/osx-arm64/libgcc-16.2.0-h3cf6597_7.conda#sha256:deacf62bd6cbbe05eb085dd69a2ca120053597c37066d53c8f7cf6815f26e9eb
+https://conda.anaconda.org/conda-forge/noarch/libgcc-devel_osx-arm64-16.2.0-ha15413b_107.conda#sha256:857547bc5a6bb5830d6a4291cec3067f850139bbc46b78db6351eba2a9f0b00b
+https://conda.anaconda.org/conda-forge/osx-arm64/libgfortran-16.2.0-h07b0088_7.conda#sha256:a5b4b63d0ef4c7c59c37225b9f0307b5cd2a3a8499b2a40b6ddd2b9f072712a8
+https://conda.anaconda.org/conda-forge/osx-arm64/libgfortran5-16.2.0-hdb7a957_7.conda#sha256:19297e5cf39de976cdd1a46499a4e15fdf54d249d3231f3b2a9d43af3be0bc66
+https://conda.anaconda.org/conda-forge/osx-arm64/libiconv-1.18-he4c29f2_3.conda#sha256:689a14968267f2f97c07112fca5636e7d756036b9aee969911267c20bd3eea1f
+https://conda.anaconda.org/conda-forge/osx-arm64/libllvm23-23.1.4-h759d1ac_1.conda#sha256:09bbb7a95c4187d406b96f3f43a5061c537bbe38ed199fec74bdd59016dd9cdf
+https://conda.anaconda.org/conda-forge/osx-arm64/liblzma-5.8.3-h8088a28_1.conda#sha256:23d0630046a3e8b164d8f80f2b74ed2605af2e7050ab9913018056402fae4311
+https://conda.anaconda.org/conda-forge/osx-arm64/libmpdec-4.0.0-h84a0fba_2.conda#sha256:04cc136c5a956a73aa14e0a160b5822b0b29714e67b299fa1b1fd16dbcba5366
+https://conda.anaconda.org/conda-forge/osx-arm64/libopenblas-0.3.34-openmp_h4f80526_1.conda#sha256:45bda47a2fd2e3936cd6da2756f57a5b22af445a6da6cc37a753bd96949721e7
+https://conda.anaconda.org/conda-forge/osx-arm64/libsigtool-0.1.3-h98dc951_1.conda#sha256:fcfa03afe31f40dfabf011629d99836adbebbc3ed1b38c7e9eee9ffc7581975b
+https://conda.anaconda.org/conda-forge/osx-arm64/libsqlite-3.54.1-h34a968b_101.conda#sha256:c49adf700ad17332b938ac627845a3fdc70a0810660d3ec3814de25b156fbf60
+https://conda.anaconda.org/conda-forge/osx-arm64/libxml2-16-2.15.4-hea22233_1.conda#sha256:458e6043db6d661b8914a3252b85b3d693e315711848efb92885fe7694f28de9
+https://conda.anaconda.org/conda-forge/osx-arm64/libxml2-2.15.4-hdcc4aff_1.conda#sha256:87b6bb897ff739c5aca1adbd026e730443cff2de01ee7185de9fa7496bf8a2ce
+https://conda.anaconda.org/conda-forge/osx-arm64/libzlib-1.3.2-h8088a28_3.conda#sha256:a18fa5d5bac452401459f966cf0d872224e8080c4ff93c77e168d43ab42ef9d7
+https://conda.anaconda.org/conda-forge/osx-arm64/llvm-openmp-23.1.5-hdb3d66b_0.conda#sha256:7a68977e62bd0c967509a7a01a25c215bb8027071dafe03aa1976fd8ade94013
+https://conda.anaconda.org/conda-forge/osx-arm64/llvm-tools-23-23.1.4-h79441dc_1.conda#sha256:0f8f4d32fc0b74393ec4f31a52fc788a246cee1a76c3f67039dda5f04e3d5aef
+https://conda.anaconda.org/conda-forge/osx-arm64/llvm-tools-23.1.4-hdb3d66b_1.conda#sha256:361c641839d38731a1395aa0132b078cbb264ef95bb62468d3ab2ec3db8a8337
+https://conda.anaconda.org/conda-forge/noarch/meson-1.12.1-pyh5ded981_0.conda#sha256:b8f20bb684aa5b4e7e277eb2ca82d2b1bc109a655e10c651008ef948d90c8884
+https://conda.anaconda.org/conda-forge/osx-arm64/ncurses-6.6-he64c551_1.conda#sha256:7024a48c8c0d0114ed4ab53c76bf9275d50e91ba7cea367a9aead638d3c29c68
+https://conda.anaconda.org/conda-forge/osx-arm64/ninja-1.13.2-h3feff0a_1.conda#sha256:3309eaa32a97afb323edb380563206c660637046eed93886d4b6b1b0ca270076
+https://conda.anaconda.org/conda-forge/osx-arm64/openblas-0.3.34-openmp_hea878ba_1.conda#sha256:cb5b1c1f31968b4907fb5079cda5811b76fdb8c98c88592777e464c65044ce49
+https://conda.anaconda.org/conda-forge/osx-arm64/openssl-3.6.5-h55eecbc_0.conda#sha256:44fbc526456571a9fb8fa18157f6f269d4d4bd40eef20183a93b9c9296f94497
+https://conda.anaconda.org/conda-forge/noarch/pip-26.2.2-pyh145f28c_2.conda#sha256:05d34ae3b49973c05c0f2f0f742e202acc6145f733460a0798944b231efd5c1a
+https://conda.anaconda.org/conda-forge/osx-arm64/pkg-config-0.29.2-he0b766d_1013.conda#sha256:a9be4e8eddb816ab4e8fe1836ed140012cd2008ef3fa28fa21bd2c89db3455bb
+https://conda.anaconda.org/conda-forge/osx-arm64/python-3.15.2-h2e4dbab_100_cp315.conda#sha256:78acd0410df52318db76856658143c687fd91398ec1850a027cf9f143498db13
+https://conda.anaconda.org/conda-forge/noarch/python_abi-3.15-9_cp315.conda#sha256:976c4a6db967a62385aa633daaab19a929f986b979a7ad836b8b70e15ca7aefd
+https://conda.anaconda.org/conda-forge/noarch/sdkroot_env_osx-arm64-26.0-ha3f98da_7.conda#sha256:fabfe031ede99898cb2b0b805f6c0d64fcc24ecdb444de3a83002d8135bf4804
+https://conda.anaconda.org/conda-forge/osx-arm64/sigtool-codesign-0.1.3-h98dc951_1.conda#sha256:7efd6d7d18bf9cc5788bfe1c1e1620d9dbbe00a81c646814929a82ff31944cf3
+https://conda.anaconda.org/conda-forge/osx-arm64/tapi-1600.0.11.8-hb561403_4.conda#sha256:6effea9587f049e702c838e8e57d98ac92b89ca1f3f1edd51c78dd252d24e83b
+https://conda.anaconda.org/conda-forge/osx-arm64/tk-8.6.13-hbeba79b_4.conda#sha256:857d89087ae7f2c328cf256728affcb7343031a148b4af847334d248a9cf564c
+https://conda.anaconda.org/conda-forge/noarch/tzdata-2026e-h5d301ff_0.conda#sha256:2b7ca858879f183ce2dcc65b300f48a0133d5430550f35b23d80d405a0788dbf
+https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hf451053_7.conda#sha256:da867f5092eb0cb746d353694f0098031fd9817a4ce7d5743121209ae0f406ca

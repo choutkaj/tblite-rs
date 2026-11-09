@@ -10,8 +10,10 @@ loads, their licence texts and SOURCES.md:
 
 Windows x86-64 builds with the MSYS2 UCRT64 packages pinned in
 tools/bundle/msys2-ucrt64.txt; Linux x86-64 with the conda-forge toolchain
-pinned in tools/bundle/conda-linux-64.txt, against glibc 2.28. tblite and its
-dependencies come from tools/build-native.py. See docs/distribution.md.
+pinned in tools/bundle/conda-linux-64.txt, against glibc 2.28; macOS arm64 with
+the conda-forge toolchain pinned in tools/bundle/conda-osx-arm64.txt, for
+macOS 11. tblite and its dependencies come from tools/build-native.py. See
+docs/distribution.md.
 """
 import argparse
 import hashlib
@@ -24,6 +26,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
 PINS = ROOT / "tools/bundle"
@@ -36,6 +39,8 @@ VERSION = native.VERSION
 SERIES = VERSION.rsplit(".", 1)[0] + ".x"
 
 GLIBC = (2, 28)
+# The first macOS release for Apple silicon, and conda-forge's osx-arm64 target.
+MACOS = (11, 0)
 # tblite and the subprojects compiled into its library, with their licences
 # and the files that state them. mstore and test-drive build only tests.
 COMPILED = {
@@ -52,22 +57,28 @@ GCC = "GPL-3.0-or-later WITH GCC-exception-3.1"
 # Every runtime library a bundle may ship, with its licence and the licences/
 # directory holding the texts. A new dependency fails the build until listed.
 RUNTIME = {
-    "libgcc_s.so.1": (GCC, "gcc"), "libgcc_s_seh-1.dll": (GCC, "gcc"),
-    "libgfortran.so.5": (GCC, "gcc"), "libgfortran-5.dll": (GCC, "gcc"),
+    "libgcc_s.so.1": (GCC, "gcc"), "libgcc_s_seh-1.dll": (GCC, "gcc"), "libgcc_s.1.1.dylib": (GCC, "gcc"),
+    "libgfortran.so.5": (GCC, "gcc"), "libgfortran-5.dll": (GCC, "gcc"), "libgfortran.5.dylib": (GCC, "gcc"),
     "libgomp.so.1": (GCC, "gcc"), "libgomp-1.dll": (GCC, "gcc"),
     "libquadmath.so.0": ("LGPL-2.1-or-later", "gcc"), "libquadmath-0.dll": ("LGPL-2.1-or-later", "gcc"),
+    "libquadmath.0.dylib": ("LGPL-2.1-or-later", "gcc"),
+    "libomp.dylib": ("Apache-2.0 WITH LLVM-exception", "llvm-openmp"),
     "libopenblas.so.0": ("BSD-3-Clause", "openblas"), "libopenblas.dll": ("BSD-3-Clause", "openblas"),
+    "libopenblas.0.dylib": ("BSD-3-Clause", "openblas"),
     "libwinpthread-1.dll": ("MIT AND BSD-3-Clause", "winpthreads"),
 }
 # GCC's licence texts are vendored: conda-forge ships only the exception.
 GCC_LICENSES = ["COPYING3", "COPYING.RUNTIME", "COPYING.LIB"]
+FLAGS = {"CFLAGS", "CXXFLAGS", "FFLAGS", "FCFLAGS", "CPPFLAGS", "LDFLAGS", "PKG_CONFIG_PATH"}
+LOADER = {"LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH", "DYLD_FALLBACK_LIBRARY_PATH", "DYLD_INSERT_LIBRARIES"}
 # Loads the bundle without a library search path and reports which bundle
 # libraries the process holds, apart from any it held before (on Linux the
 # interpreter may already hold the system libgcc_s, which then serves both).
 SMOKE = r"""
 import ctypes, json, os, sys
 lib, names = sys.argv[1], sys.argv[2:]
-bundled = [name for name in os.listdir(lib) if ".so." in name or name.endswith(".dll")]
+bundled = [name for name in os.listdir(lib) if not os.path.islink(os.path.join(lib, name))
+           and (".so." in name or name.endswith((".dll", ".dylib")))]
 def held():
     if os.name == "nt":
         kernel32 = ctypes.WinDLL("kernel32")
@@ -79,8 +90,13 @@ def held():
                 kernel32.GetModuleFileNameW(ctypes.c_void_p(handle), buffer, 32768)
                 paths[name] = buffer.value
         return paths
-    with open("/proc/self/maps") as maps:
-        files = {line.split()[-1] for line in maps if "/" in line}
+    if sys.platform == "darwin":
+        dyld = ctypes.CDLL(None)
+        dyld._dyld_get_image_name.restype = ctypes.c_char_p
+        files = {os.fsdecode(dyld._dyld_get_image_name(i)) for i in range(dyld._dyld_image_count())}
+    else:
+        with open("/proc/self/maps") as maps:
+            files = {line.split()[-1] for line in maps if "/" in line}
     return {name: path for path in files for name in bundled if os.path.basename(path) == name}
 before = held()
 tblite, blas = (ctypes.CDLL(os.path.join(lib, name)) for name in names)
@@ -90,6 +106,9 @@ print(json.dumps({"version": tblite.tblite_get_version(), "config": blas.openbla
                   "core": blas.openblas_get_corename().decode(), "bundled": bundled,
                   "before": sorted(before), "loaded": after}))
 """
+# OpenBLAS's kernel selection: the word its configuration must contain, and a note.
+DYNAMIC_ARCH = ("DYNAMIC_ARCH", "it selects kernels for the CPU at run time (`DYNAMIC_ARCH`; {core} on the "
+                "build machine)")
 
 def run(*args, **kwargs):
     print("+", " ".join(map(str, args)), flush=True)
@@ -112,17 +131,12 @@ def git_revision():
 def without(names):
     return {k: v for k, v in os.environ.items() if k not in names}
 
-class Linux:
-    name = "linux-x86_64"
-    description = f"Linux x86-64 with glibc {GLIBC[0]}.{GLIBC[1]} or later"
-    host = "x86_64-conda-linux-gnu"
-    # glibc's libraries; libmvec holds the vector maths GCC calls in vectorized loops.
-    system = {"libc.so.6", "libm.so.6", "libmvec.so.1", "libdl.so.2", "libpthread.so.0", "librt.so.1",
-              "ld-linux-x86-64.so.2"}
+class Conda:
+    """A conda-forge toolchain, created from its lock in tools/bundle."""
 
     def __init__(self, args, work):
         self.prefix = (args.toolchain or work / "toolchain").resolve()
-        lock = PINS / "conda-linux-64.txt"
+        lock = PINS / self.lock
         pinned = {line.split("#")[0] for line in lock.read_text().splitlines() if line.startswith("https://")}
         if not (self.prefix / "conda-meta").is_dir():
             micromamba = args.micromamba or shutil.which("micromamba") or os.environ.get("MAMBA_EXE")
@@ -137,9 +151,46 @@ class Linux:
     def tool(self, name):
         return self.prefix / "bin" / f"{self.host}-{name}"
 
+    def locate(self, name):
+        path = self.prefix / "lib" / name
+        if not path.exists():
+            raise RuntimeError(f"{name} is not in {path.parent}")
+        return path.resolve()
+
+    def owner(self, path):
+        relative = path.relative_to(self.prefix).as_posix()
+        package = next(p for p in self.packages if relative in p["files"])
+        info = Path(package["extracted_package_dir"]) / "info"
+        extra = json.loads((info / "about.json").read_text()).get("extra", {})
+        return {"package": f"conda-forge {package['name']} {package['version']} {package['build']}",
+                "url": package["url"], "sha256": package["sha256"], "source": recipe_source(info / "recipe"),
+                "recipe": f"{extra['remote_url']} at `{extra['sha']}`", "info": info}
+
+    def licenses(self, component, owners):
+        info = next(o["info"] for name, o in owners.items() if RUNTIME[name][1] == component)
+        if component == "openblas":
+            return {"LICENSE": info / "licenses/LICENSE", "LICENSE-lapack": info / "licenses/lapack-netlib/LICENSE"}
+        if component == "llvm-openmp":
+            return {"LICENSE.TXT": info / "licenses/openmp/LICENSE.TXT"}
+        raise KeyError(component)
+
+    def pinned(self):
+        return (f"`tools/bundle/{self.lock}`: {len(self.packages)} conda-forge packages, each pinned by URL "
+                "and SHA-256")
+
+class Linux(Conda):
+    name = "linux-x86_64"
+    description = f"Linux x86-64 with glibc {GLIBC[0]}.{GLIBC[1]} or later"
+    host = "x86_64-conda-linux-gnu"
+    lock = "conda-linux-64.txt"
+    blas = DYNAMIC_ARCH
+    # glibc's libraries; libmvec holds the vector maths GCC calls in vectorized loops.
+    system = {"libc.so.6", "libm.so.6", "libmvec.so.1", "libdl.so.2", "libpthread.so.0", "librt.so.1",
+              "ld-linux-x86-64.so.2"}
+
     def environment(self):
         lib = self.prefix / "lib"
-        env = without({"CFLAGS", "CXXFLAGS", "FFLAGS", "FCFLAGS", "CPPFLAGS", "LDFLAGS", "PKG_CONFIG_PATH"})
+        env = without(FLAGS)
         env.update(PATH=f"{self.prefix / 'bin'}{os.pathsep}{env['PATH']}", FC=str(self.tool("gfortran")),
                    CC=str(self.tool("gcc")), CXX=str(self.tool("g++")), AR=str(self.tool("ar")),
                    PKG_CONFIG_LIBDIR=str(lib / "pkgconfig"), LDFLAGS=f"-L{lib} -Wl,-rpath-link,{lib}")
@@ -150,12 +201,6 @@ class Linux:
 
     def dependencies(self, path):
         return re.findall(r"\(NEEDED\)\s+Shared library: \[(.+?)\]", output(self.tool("readelf"), "-d", path))
-
-    def locate(self, name):
-        path = self.prefix / "lib" / name
-        if not path.exists():
-            raise RuntimeError(f"{name} is not in {path.parent}")
-        return path.resolve()
 
     def library(self, install, lib):
         shutil.copyfile((install / "lib/libtblite.so.0").resolve(), lib / "libtblite.so.0")
@@ -173,40 +218,135 @@ class Linux:
             raise RuntimeError(f"The bundle needs GLIBC_{newest[0]}.{newest[1]}, newer than "
                                f"{GLIBC[0]}.{GLIBC[1]}")
         symbols = output(self.tool("nm"), "-D", "--defined-only", lib / "libtblite.so.0")
-        exported = set(re.findall(r" T (tblite_\w+)$", symbols, re.M))
-        expected = {f["name"] for f in json.loads((ROOT / "tblite-sys/api.json").read_text())["functions"]}
-        if expected - exported:
-            raise RuntimeError(f"Missing exports: {sorted(expected - exported)}")
+        check_exports(re.findall(r" T (tblite_\w+)$", symbols, re.M))
         return [f"The newest glibc symbol version any library needs is GLIBC_{newest[0]}.{newest[1]}. "
                 "Each library's RUNPATH is `$ORIGIN`, so it finds the others in `lib/`; this is the only "
                 "change to the conda-forge binaries."]
-
-    def owner(self, path):
-        relative = path.relative_to(self.prefix).as_posix()
-        package = next(p for p in self.packages if relative in p["files"])
-        info = Path(package["extracted_package_dir"]) / "info"
-        extra = json.loads((info / "about.json").read_text()).get("extra", {})
-        return {"package": f"conda-forge {package['name']} {package['version']} {package['build']}",
-                "url": package["url"], "sha256": package["sha256"], "source": recipe_source(info / "recipe"),
-                "recipe": f"{extra['remote_url']} at `{extra['sha']}`", "info": info}
-
-    def licenses(self, component, owners):
-        info = next(o["info"] for name, o in owners.items() if RUNTIME[name][1] == component)
-        if component == "openblas":
-            return {"LICENSE": info / "licenses/LICENSE", "LICENSE-lapack": info / "licenses/lapack-netlib/LICENSE"}
-        raise KeyError(component)
 
     def toolchain(self):
         compiler = output(self.tool("gfortran"), "--version").splitlines()[0]
         sysroot = next(p for p in self.packages if p["name"] == "sysroot_linux-64")
         return [f"Compilers: {compiler}, conda-forge `{self.host}`, against the glibc {sysroot['version']} "
                 f"sysroot (`sysroot_linux-64 {sysroot['version']} {sysroot['build']}`). The toolchain is "
-                f"`tools/bundle/conda-linux-64.txt`: {len(self.packages)} conda-forge packages, each pinned by URL "
-                "and SHA-256."]
+                f"{self.pinned()}."]
+
+class Macos(Conda):
+    name = "macos-aarch64"
+    description = f"macOS {MACOS[0]}.{MACOS[1]} and later on Apple silicon (arm64)"
+    host = "arm64-apple-darwin20.0.0"
+    lock = "conda-osx-arm64.txt"
+    # conda-forge builds OpenBLAS for Apple silicon only, which covers every Apple M processor.
+    blas = ("VORTEX", "it uses its kernels for Apple silicon (`VORTEX`)")
+    DYLIBS = {"LC_LOAD_DYLIB", "LC_LOAD_WEAK_DYLIB", "LC_REEXPORT_DYLIB", "LC_LAZY_LOAD_DYLIB",
+              "LC_LOAD_UPWARD_DYLIB"}
+
+    def __init__(self, args, work):
+        super().__init__(args, work)
+        self.sdk = output("xcrun", "--sdk", "macosx", "--show-sdk-path").strip()
+
+    def environment(self):
+        lib = self.prefix / "lib"
+        env = without(FLAGS | LOADER | {"LIBRARY_PATH", "CPATH", "SDKROOT", "MACOSX_DEPLOYMENT_TARGET"})
+        # The rpath lets Meson's test programs find the toolchain's libc++; finish() replaces
+        # every rpath of the bundled libraries.
+        env.update(PATH=f"{self.prefix / 'bin'}{os.pathsep}{env['PATH']}", FC=str(self.tool("gfortran")),
+                   CC=str(self.tool("clang")), CXX=str(self.tool("clang++")), AR=str(self.tool("ar")),
+                   PKG_CONFIG_LIBDIR=str(lib / "pkgconfig"), SDKROOT=self.sdk,
+                   MACOSX_DEPLOYMENT_TARGET=f"{MACOS[0]}.{MACOS[1]}",
+                   LDFLAGS=f"-L{lib} -Wl,-rpath,{lib} -isysroot {self.sdk} -Wl,-headerpad_max_install_names")
+        return env
+
+    def is_system(self, name):
+        return name.startswith(("/usr/lib/", "/System/Library/"))
+
+    def load_commands(self, path):
+        """The Mach-O load commands of the arm64 code in `path`, from `otool -l`."""
+        commands = []
+        for line in output(self.tool("otool"), "-arch", "arm64", "-l", path).splitlines():
+            words = line.split()
+            if words[:2] == ["Load", "command"]:
+                commands.append({})
+            elif commands and len(words) > 1:
+                commands[-1].setdefault(words[0], re.sub(r" \(offset \d+\)$", "", " ".join(words[1:])))
+        return commands
+
+    def linked(self, path):
+        return [c["name"] for c in self.load_commands(path) if c.get("cmd") in self.DYLIBS]
+
+    def rpaths(self, path):
+        return [c["path"] for c in self.load_commands(path) if c.get("cmd") == "LC_RPATH"]
+
+    def dependencies(self, path):
+        return [name if self.is_system(name) else Path(name).name for name in self.linked(path)]
+
+    def library(self, install, lib):
+        shutil.copyfile((install / "lib/libtblite.0.dylib").resolve(), lib / "libtblite.0.dylib")
+        (lib / "libtblite.dylib").symlink_to("libtblite.0.dylib")
+        return lib / "libtblite.0.dylib"
+
+    def finish(self, lib):
+        """Make the libraries find each other in `lib/`, re-sign them, then check them."""
+        libraries = sorted(p for p in lib.glob("*.dylib") if not p.is_symlink())
+        names = {p.name for p in libraries}
+        install_name_tool = self.tool("install_name_tool")
+        for path in libraries:
+            changes = ["-id", f"@rpath/{path.name}"]
+            for name in self.linked(path):
+                if not self.is_system(name) and name != f"@rpath/{Path(name).name}":
+                    changes += ["-change", name, f"@rpath/{Path(name).name}"]
+            run(install_name_tool, *changes, path)
+            while rpaths := self.rpaths(path):
+                run(install_name_tool, *[arg for rpath in dict.fromkeys(rpaths) for arg in ("-delete_rpath", rpath)],
+                    path)
+            run(install_name_tool, "-add_rpath", "@loader_path", path)
+            run("/usr/bin/codesign", "--force", "--sign", "-", path)
+        newest, problems = (0, 0), []
+        for path in libraries:
+            commands = self.load_commands(path)
+            ident = [c["name"] for c in commands if c.get("cmd") == "LC_ID_DYLIB"]
+            if ident != [f"@rpath/{path.name}"]:
+                problems.append(f"{path.name}: install name {ident}")
+            if self.rpaths(path) != ["@loader_path"]:
+                problems.append(f"{path.name}: rpaths {self.rpaths(path)}")
+            # otool -L lists the install name and every linked library.
+            for line in output(self.tool("otool"), "-arch", "arm64", "-L", path).splitlines()[1:]:
+                name = line.strip().split(" (compatibility version")[0]
+                if not (self.is_system(name) or (name.startswith("@rpath/") and name[7:] in names)):
+                    problems.append(f"{path.name}: links {name}")
+            versions = [c.get("minos") for c in commands if c.get("cmd") == "LC_BUILD_VERSION"]
+            versions += [c.get("version") for c in commands if c.get("cmd") == "LC_VERSION_MIN_MACOSX"]
+            if len(versions) != 1:
+                problems.append(f"{path.name}: minimum macOS versions {versions}")
+            else:
+                newest = max(newest, tuple(int(part) for part in versions[0].split(".")[:2]))
+            architectures = output(self.tool("lipo"), "-info", path).rsplit(": ", 1)[-1].split()
+            if architectures != ["arm64"]:
+                problems.append(f"{path.name}: architectures {architectures}")
+            run("/usr/bin/codesign", "--verify", "--strict", path)
+        if newest > MACOS:
+            problems.append(f"a library needs macOS {newest[0]}.{newest[1]}, newer than {MACOS[0]}.{MACOS[1]}")
+        if problems:
+            raise RuntimeError("The bundle is not relocatable:\n  " + "\n  ".join(problems))
+        symbols = output(self.tool("nm"), "-gU", lib / "libtblite.0.dylib")
+        check_exports(re.findall(r" T _(tblite_\w+)$", symbols, re.M))
+        return [f"The newest minimum macOS any library declares is {newest[0]}.{newest[1]}. Each library's "
+                "install name is `@rpath/` and its file name, and its only rpath is `@loader_path`, so it finds "
+                "the others in `lib/`. `install_name_tool` set these, and `codesign --force -s -` then signed "
+                "each library ad hoc; these are the only changes to the conda-forge binaries. The bundle has no "
+                "other signature: an application signs the libraries with its own identity."]
+
+    def toolchain(self):
+        fortran = output(self.tool("gfortran"), "--version").splitlines()[0]
+        clang = output(self.tool("clang"), "--version").splitlines()[0]
+        sdk = output("xcrun", "--sdk", "macosx", "--show-sdk-version").strip()
+        return [f"Compilers: {fortran} and {clang}, conda-forge `{self.host}`, with the macOS {sdk} SDK of the "
+                f"build machine and `MACOSX_DEPLOYMENT_TARGET={MACOS[0]}.{MACOS[1]}`. The toolchain is "
+                f"{self.pinned()}."]
 
 class Windows:
     name = "windows-x86_64"
     description = "Windows 10 and later, x86-64"
+    blas = DYNAMIC_ARCH
     system = {"kernel32.dll", "advapi32.dll"}  # and the api-ms-win-crt-* sets of the Universal C Runtime
 
     def __init__(self, args, work):
@@ -227,7 +367,7 @@ class Windows:
                              f"\nInstall them in a UCRT64 shell with:\n  pacman -U --needed {urls}")
 
     def environment(self):
-        env = without({"CFLAGS", "CXXFLAGS", "FFLAGS", "FCFLAGS", "CPPFLAGS", "LDFLAGS", "PKG_CONFIG_PATH"})
+        env = without(FLAGS)
         env.update(PATH=f"{self.ucrt / 'bin'}{os.pathsep}{env['PATH']}", FC="gfortran", CC="gcc", CXX="g++")
         return env
 
@@ -281,6 +421,8 @@ class Windows:
                 f"is `tools/bundle/msys2-ucrt64.txt`: {len(self.pins)} MSYS2 packages, each pinned by version and "
                 "SHA-256."]
 
+TARGETS = {"win32": (Windows, {"amd64", "x86_64"}), "linux": (Linux, {"x86_64"}), "darwin": (Macos, {"arm64"})}
+
 def msys2_pins():
     """(name, version, SHA-256) of every pinned MSYS2 package."""
     return [line.split() for line in (PINS / "msys2-ucrt64.txt").read_text().splitlines()
@@ -302,6 +444,11 @@ def recipe_source(recipe):
                 return f"{url.group(1)} (SHA-256 `{digest.group(1)}`)" if digest else url.group(1)
     raise RuntimeError(f"No source URL in {recipe}")
 
+def check_exports(exported):
+    expected = {f["name"] for f in json.loads((ROOT / "tblite-sys/api.json").read_text())["functions"]}
+    if expected - set(exported):
+        raise RuntimeError(f"Missing exports: {sorted(expected - set(exported))}")
+
 def compiled_subprojects(build):
     """Names of the subproject archives linked into the tblite library."""
     lines, names, inside = (build / "build.ninja").read_text(encoding="utf-8").splitlines(), set(), False
@@ -319,13 +466,27 @@ def write_pc(lib):
         f"Name: tblite\nDescription: Light-weight tight-binding framework\nVersion: {VERSION}\n"
         "Libs: -L${libdir} -ltblite\nCflags: -I${includedir}\n", encoding="utf-8", newline="\n")
 
+def archive(out, name, directory):
+    """Pack the bundle as tblite-VERSION-NAME.tar.gz, with NAME/ as its top-level folder."""
+    def anonymous(info):
+        info.uid = info.gid = 0
+        info.uname = info.gname = ""
+        return info
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"tblite-{VERSION}-{name}.tar.gz"
+    with tarfile.open(path, "w:gz") as tar:
+        tar.add(out, arcname=name, filter=anonymous)
+    return path
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out", type=Path, help="new bundle directory")
+    parser.add_argument("--archive", type=Path, metavar="DIR",
+                        help="also write tblite-VERSION-PLATFORM.tar.gz into DIR")
     parser.add_argument("--work-dir", type=Path, default=ROOT / ".native/bundle",
-                        help="sources, build tree and, on Linux, the toolchain")
-    parser.add_argument("--toolchain", type=Path, help="Linux: conda prefix to create or reuse")
-    parser.add_argument("--micromamba", help="Linux: micromamba executable")
+                        help="sources, build tree and, on Linux and macOS, the toolchain")
+    parser.add_argument("--toolchain", type=Path, help="Linux and macOS: conda prefix to create or reuse")
+    parser.add_argument("--micromamba", help="Linux and macOS: micromamba executable")
     parser.add_argument("--msys2", help=r"Windows: MSYS2 root (default: MSYS2_ROOT or C:\msys64)")
     parser.add_argument("--jobs", type=int, default=4)
     parser.add_argument("--msys2-urls", action="store_true",
@@ -336,14 +497,15 @@ def main():
         return
     if not args.out:
         parser.error("--out is required")
-    if sys.platform not in ("win32", "linux") or platform.machine().lower() not in ("x86_64", "amd64"):
-        parser.error("bundles are built on Windows and Linux x86-64")
+    target_class, machines = TARGETS.get(sys.platform, (None, set()))
+    if platform.machine().lower() not in machines:
+        parser.error("bundles are built on Windows and Linux x86-64 and on macOS arm64")
     out = args.out.resolve()
     if out.exists() and any(out.iterdir()):
         parser.error(f"{out} is not empty")
     work = args.work_dir.resolve()
     work.mkdir(parents=True, exist_ok=True)
-    target = (Windows if os.name == "nt" else Linux)(args, work)
+    target = target_class(args, work)
     install, build, source = work / "install", work / "build", work / "source"
     if install.exists():
         shutil.rmtree(install)
@@ -389,21 +551,23 @@ def main():
             shutil.copyfile(origin, licenses / component / filename)
 
     blas = next(name for name in owners if name.startswith("libopenblas"))
-    env = without({"LD_LIBRARY_PATH", "PATH"}) | {"PATH": os.path.join(os.environ.get("SystemRoot", "/usr"),
-                                                                       "System32" if os.name == "nt" else "bin")}
+    env = without(LOADER | {"PATH"}) | {"PATH": os.path.join(os.environ.get("SystemRoot", "/usr"),
+                                                             "System32" if os.name == "nt" else "bin")}
     smoke = subprocess.run([sys.executable, "-I", "-c", SMOKE, lib, library.name, blas],
                            capture_output=True, text=True, env=env)
     if smoke.returncode:
         raise RuntimeError(f"The bundle does not load:\n{smoke.stderr}")
     loaded = json.loads(smoke.stdout)
     code = sum(int(part) * 100 ** i for i, part in enumerate(reversed(VERSION.split("."))))
-    if loaded["version"] != code or "DYNAMIC_ARCH" not in loaded["config"].split():
+    if loaded["version"] != code or target.blas[0] not in loaded["config"].split():
         raise RuntimeError(f"Unexpected tblite version or OpenBLAS build: {loaded}")
     outside = {name: path for name, path in loaded["loaded"].items() if Path(path).resolve().parent != lib.resolve()}
     if outside or set(loaded["loaded"]) | set(loaded["before"]) != set(loaded["bundled"]):
         raise RuntimeError(f"The bundle's libraries did not all load from {lib}: {loaded}")
     write_sources(out, target, owners, loaded, notes)
     print(f"Bundle for {target.name} in {out}")
+    if args.archive:
+        print(f"Archive: {archive(out, target.name, args.archive.resolve())}")
 
 def write_sources(out, target, owners, loaded, notes):
     lines = [f"# tblite {VERSION} runtime bundle, {target.name}", "",
@@ -448,17 +612,21 @@ def write_sources(out, target, owners, loaded, notes):
     for name, owner in sorted(owners.items()):
         lines.append(f"| `{name}` | [{owner['package']}]({owner['url']}) | `{owner['sha256']}` | "
                      f"{owner['source']} | {owner['recipe']} |")
-    lines += ["", f"OpenBLAS reports `{loaded['config']}`: it selects kernels for the CPU at run time "
-              f"(`DYNAMIC_ARCH`; {loaded['core']} on the build machine). `OMP_NUM_THREADS` sets tblite's threads "
-              "and `OPENBLAS_NUM_THREADS` OpenBLAS's.", "", "## Licences", "",
+    components = {RUNTIME[name][1] for name in owners}
+    gcc = [stem for stem in ("libgcc_s", "libgfortran", "libgomp") if any(n.startswith(stem) for n in owners)]
+    lines += ["", f"OpenBLAS reports `{loaded['config']}`: " + target.blas[1].format(core=loaded["core"]) +
+              ". `OMP_NUM_THREADS` sets tblite's threads and `OPENBLAS_NUM_THREADS` OpenBLAS's.", "",
+              "## Licences", "",
               "- tblite, dftd4, s-dftd3 and ddX: GNU LGPL 3.0 or later (`COPYING.LESSER`, ddX `LICENSE.txt`), "
               "which supplements the GNU GPL 3.0 (`tblite/COPYING`).",
               "- multicharge and mctc-lib: Apache 2.0. toml-f and jonquil: Apache 2.0 or MIT.",
-              "- GCC runtime libraries (libgcc_s, libgfortran, libgomp): GNU GPL 3.0 or later (`gcc/COPYING3`) "
+              f"- GCC runtime libraries ({', '.join(gcc)}): GNU GPL 3.0 or later (`gcc/COPYING3`) "
               "with the GCC Runtime Library Exception 3.1 (`gcc/COPYING.RUNTIME`).",
               "- libquadmath: GNU LGPL 2.1 or later (`gcc/COPYING.LIB`).",
               "- OpenBLAS: BSD 3-Clause, with the modified BSD licence of its LAPACK (`openblas/`)."]
-    if any(RUNTIME[name][1] == "winpthreads" for name in owners):
+    if "llvm-openmp" in components:
+        lines.append("- LLVM OpenMP (libomp): Apache 2.0 with LLVM exceptions (`llvm-openmp/LICENSE.TXT`).")
+    if "winpthreads" in components:
         lines.append("- winpthreads (libwinpthread): MIT, with BSD 3-Clause parts (`winpthreads/COPYING`).")
     lines += ["", "Distributing this bundle distributes the object code of its LGPL components. Their corresponding "
               "source, listed above, must stay available to recipients as LGPL 3.0 and LGPL 2.1 require.", ""]

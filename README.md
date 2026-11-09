@@ -44,8 +44,8 @@ For this geometry, the GFN2 energy is approximately **−5.070318054910 Hartree*
 - [MB16-43 numerical parity](benchmarks/mb16-43/README.md): 43 structures across three methods, native/Rust errors and plots.
 - [Licensing](docs/licensing.md): original Rust licenses and native distribution obligations.
 - [Distribution](docs/distribution.md): a redistributable shared tblite with its runtime libraries,
-  licences and sources, for Windows x86-64 and Linux x86-64 (glibc 2.28).
-- [Changelog](CHANGELOG.md) and [0.1.0 release notes](docs/releases/v0.1.0.md).
+  licences and sources, for Windows x86-64, Linux x86-64 (glibc 2.28) and macOS arm64.
+- [Changelog](CHANGELOG.md) and [0.2.0 release notes](docs/releases/v0.2.0.md).
 - [Publishing a release](docs/releasing.md): maintainer checks and crates.io/GitHub commands.
 
 Examples: [single point](tblite/examples/singlepoint.rs),
@@ -63,9 +63,13 @@ cargo doc --workspace --no-deps --open
 The compatibility range is **0.8.x**, checked during library discovery and
 before safe native object construction. Optional ddX, HDF5, TREXIO and MPI
 support depends on the installed library: `tblite::has_feature` reports it, and
-the same Rust methods return native errors when a capability is absent. Fortran-only interfaces, optimization/MD drivers,
-automatic Cargo native builds, Windows static linking and prebuilt binaries are
-outside this release.
+the same Rust methods return native errors when a capability is absent.
+Fortran-only interfaces, optimization/MD drivers, automatic Cargo native builds
+and Windows static linking are outside this release.
+
+GitHub releases attach redistributable tblite runtime bundles for Windows
+x86-64, Linux x86-64 and macOS arm64: the shared library, its runtime libraries
+and their licences. See [distribution](docs/distribution.md).
 
 Original Rust code is **MIT OR Apache-2.0**. tblite and copied upstream materials
 remain **LGPL-3.0-or-later**; see [NOTICE.md](NOTICE.md).
