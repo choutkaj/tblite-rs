@@ -251,6 +251,11 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      TBLITE_DIR: ${{ github.workspace }}/.native/tblite-macos-aarch64
+      # As in an application: the executables find lib/ through their rpath.
+      RUSTFLAGS: -C link-arg=-Wl,-rpath,${{ github.workspace }}/.native/tblite-macos-aarch64/lib
+      RUSTDOCFLAGS: -C link-arg=-Wl,-rpath,${{ github.workspace }}/.native/tblite-macos-aarch64/lib
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -265,17 +270,18 @@ jobs:
           chmod +x "$RUNNER_TEMP/micromamba"
           echo "MAMBA_EXE=$RUNNER_TEMP/micromamba" >> "$GITHUB_ENV"
       - name: Build the bundle from the pinned toolchain
-        run: python tools/bundle-native.py --out "$PWD/.native/tblite-macos-aarch64" --archive "$PWD/.native/dist"
+        run: python tools/bundle-native.py --out "$TBLITE_DIR" --archive "$PWD/.native/dist"
       - name: Bindings and examples against the bundle alone
         run: |
-          # As in an application: the executables find lib/ through their rpath.
-          export TBLITE_DIR="$PWD/.native/tblite-macos-aarch64"
-          export RUSTFLAGS="-C link-arg=-Wl,-rpath,$TBLITE_DIR/lib"
-          export RUSTDOCFLAGS="$RUSTFLAGS"
           cargo test --locked --workspace --features tblite-sys/abi-tests
           for example in singlepoint geometry_updates solvation custom_parameters results; do
             cargo run --locked -p tblite --example "$example"
           done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-macos-aarch64
+          path: .native/dist/
+          if-no-files-found: error
       - name: MB16-43 native and Rust numerical parity
         run: |
           python -m venv .native/parity-venv
@@ -284,14 +290,9 @@ jobs:
           cargo build --locked -p tblite --example parity_export
           .native/parity-venv/bin/python tools/benchmark_parity.py run \
             --native .native/bundle/install/bin/tblite \
-            --library .native/tblite-macos-aarch64/lib/libtblite.0.dylib \
+            --library "$TBLITE_DIR/lib/libtblite.0.dylib" \
             --rust target/debug/examples/parity_export \
             --output .native/parity-macos
-      - uses: actions/upload-artifact@v4
-        with:
-          name: bundle-macos-aarch64
-          path: .native/dist/
-          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
