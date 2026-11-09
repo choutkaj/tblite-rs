@@ -5,8 +5,8 @@
 tblite 0.8.0 was tested locally with the runtime bundles of
 [distribution.md](distribution.md): on Windows x86-64 with MSVC Rust and the
 Windows bundle, and on Linux x86-64 under WSL with the Linux bundle. Both
-bundles use GNU Fortran 16.2, OpenBLAS, ddX and HDF5. The tests, examples and
-the MB16-43 parity benchmark passed on both.
+bundles use GNU Fortran 16.2, OpenBLAS and ddX, without HDF5. The tests,
+examples and the MB16-43 parity benchmark passed on both.
 
 CI runs the other configurations on every commit: dynamic and static tblite
 on Linux (with ddX/HDF5 enabled and with both disabled) and on macOS ARM64 and
