@@ -67,10 +67,15 @@ foreach ($archive in $archives) {
     $platform = $archive.Name -replace '^tblite-[0-9.]+-(.+)\.tar\.gz$', '$1'
     $sources = (tar -xOzf $archive.FullName "$platform/SOURCES.md") -join "`n"
     if ($sources -notmatch "at ``$releaseCommit``\.") { throw "$($archive.Name) is not from $releaseCommit." }
-    tar -xzf $archive.FullName -C $bundles
 }
 $archives | Select-Object Name, Length
+$windows = $archives | Where-Object Name -like '*-windows-x86_64.tar.gz'
+tar -xzf $windows.FullName -C $bundles
+if ($LASTEXITCODE -ne 0) { throw 'Could not unpack the Windows bundle.' }
 ```
+
+Only the Windows bundle is unpacked: Windows `tar` cannot create the
+`libtblite.so` and `libtblite.dylib` links of the other two.
 
 ## Verify and publish to crates.io
 
