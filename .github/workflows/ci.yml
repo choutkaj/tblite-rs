@@ -229,7 +229,7 @@ jobs:
           chmod +x "$RUNNER_TEMP/micromamba"
           echo "MAMBA_EXE=$RUNNER_TEMP/micromamba" >> "$GITHUB_ENV"
       - name: Build the bundle from the pinned toolchain
-        run: python3 tools/bundle-native.py --out "$PWD/.native/tblite-linux-x86_64"
+        run: python3 tools/bundle-native.py --out "$PWD/.native/tblite-linux-x86_64" --archive "$PWD/.native/dist"
       - name: Bindings and examples against the bundle alone
         run: |
           export TBLITE_DIR="$PWD/.native/tblite-linux-x86_64"
@@ -238,6 +238,73 @@ jobs:
           for example in singlepoint geometry_updates solvation custom_parameters results; do
             cargo run --locked -p tblite --example "$example"
           done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-linux-x86_64
+          path: .native/dist/
+          if-no-files-found: error
+
+  bundle-macos:
+    name: Runtime bundle / macOS arm64
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: micromamba
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/micromamba" \
+            https://github.com/mamba-org/micromamba-releases/releases/download/2.10.0-0/micromamba-osx-arm64
+          echo "c547639f5caf742236641c362746abb4a3505774753ecd08fe341643670c4c01  $RUNNER_TEMP/micromamba" | shasum -a 256 -c
+          chmod +x "$RUNNER_TEMP/micromamba"
+          echo "MAMBA_EXE=$RUNNER_TEMP/micromamba" >> "$GITHUB_ENV"
+      - name: Build the bundle from the pinned toolchain
+        run: python tools/bundle-native.py --out "$PWD/.native/tblite-macos-aarch64" --archive "$PWD/.native/dist"
+      - name: Bindings and examples against the bundle alone
+        run: |
+          # As in an application: the executables find lib/ through their rpath.
+          export TBLITE_DIR="$PWD/.native/tblite-macos-aarch64"
+          export RUSTFLAGS="-C link-arg=-Wl,-rpath,$TBLITE_DIR/lib"
+          export RUSTDOCFLAGS="$RUSTFLAGS"
+          cargo test --locked --workspace --features tblite-sys/abi-tests
+          for example in singlepoint geometry_updates solvation custom_parameters results; do
+            cargo run --locked -p tblite --example "$example"
+          done
+      - name: MB16-43 native and Rust numerical parity
+        run: |
+          python -m venv .native/parity-venv
+          .native/parity-venv/bin/python -m pip install -r tools/parity-requirements.txt
+          .native/parity-venv/bin/python tools/test_benchmark_parity.py
+          cargo build --locked -p tblite --example parity_export
+          .native/parity-venv/bin/python tools/benchmark_parity.py run \
+            --native .native/bundle/install/bin/tblite \
+            --library .native/tblite-macos-aarch64/lib/libtblite.0.dylib \
+            --rust target/debug/examples/parity_export \
+            --output .native/parity-macos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-macos-aarch64
+          path: .native/dist/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: parity-macos-aarch64
+          path: |
+            .native/parity-macos/README.md
+            .native/parity-macos/cases.csv
+            .native/parity-macos/parity.png
+            .native/parity-macos/parity.svg
+            .native/parity-macos/results.json
+            .native/parity-macos/summary.csv
+            .native/parity-macos/summary.json
+          if-no-files-found: ignore
 
   bundle-windows:
     name: Runtime bundle / Windows x86-64
@@ -267,7 +334,7 @@ jobs:
         run: pacman -U --needed --noconfirm $MSYS2_PINNED
       - name: Build the bundle
         shell: pwsh
-        run: python tools/bundle-native.py --msys2 "${{ steps.msys.outputs.msys2-location }}" --out .native/tblite-windows-x86_64
+        run: python tools/bundle-native.py --msys2 "${{ steps.msys.outputs.msys2-location }}" --out .native/tblite-windows-x86_64 --archive .native/dist
       - name: Bindings and examples against the bundle alone
         shell: pwsh
         run: |
@@ -279,3 +346,8 @@ jobs:
             cargo run --locked -p tblite --example $example
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-windows-x86_64
+          path: .native/dist/
+          if-no-files-found: error
