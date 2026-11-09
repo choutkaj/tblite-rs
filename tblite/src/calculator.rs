@@ -23,11 +23,17 @@ pub enum Guess {
 pub enum Mixer {
     Broyden = 1,
 }
+/// Orbital localization methods for `Calculator::add_orbital_localization`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u32)]
+pub enum LocalizationMethod {
+    FosterBoys = 1,
+}
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CalculatorConfig {
     /// Dispersion switching width in Bohr; `None` uses the native default.
-    /// The 0.7.0 C header labels this as Hartree, but the implementation
-    /// passes it directly to D3/D4's real-space cutoff switching function.
+    /// The C header labels this as Hartree, but the implementation passes
+    /// it directly to D3/D4's real-space cutoff switching function.
     pub dispersion_smoothing_width_bohr: Option<f64>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -264,7 +270,7 @@ impl Calculator {
             );
         }
         if let Err(error) = self.context.check() {
-            // tblite 0.7 may leave results allocated without its dictionary
+            // tblite may leave results allocated without its dictionary
             // after an early failure. Reusing that object aborts in Fortran's
             // check_results; discard all partial restart data on failure.
             self.result = CalculationResult::new()?;
@@ -521,15 +527,16 @@ impl Calculator {
         err.check()?;
         self.push(container?)
     }
-    /// Add `bond-orders`, `molmom`, `xtbml`, `xtbml-xyz`, or a TOML file path.
-    /// The file form contains a `[post-processing]` table. Native 0.7 treats
-    /// every unrecognized name as a file; Rust checks readability first.
+    /// Add `bond-orders`, `lmo-foster-boys`, `molmom`, `xtbml`, `xtbml-xyz`, or
+    /// a TOML file path. The file form contains a `[post-processing]` table.
+    /// Native tblite treats every unrecognized name as a file; Rust checks
+    /// readability first.
     pub fn add_post_processing(&mut self, name: &str) -> Result<()> {
         let _guard = runtime::enter()?;
         cstring(name)?;
         if !matches!(
             name.trim_end_matches(' '),
-            "bond-orders" | "molmom" | "xtbml" | "xtbml-xyz" | "xtbml_xyz"
+            "bond-orders" | "lmo-foster-boys" | "molmom" | "xtbml" | "xtbml-xyz" | "xtbml_xyz"
         ) {
             drop(std::fs::File::open(name)?);
         }
@@ -540,6 +547,21 @@ impl Calculator {
                 self.raw.ptr,
                 self.structure.raw.ptr,
                 name.as_ptr().cast_mut(),
+            );
+        }
+        self.context.check()
+    }
+    /// Localize the occupied orbitals after each calculation. Read them with
+    /// `CalculationResult::localized_orbital_coefficients` and
+    /// `localized_orbital_centers`.
+    pub fn add_orbital_localization(&mut self, method: LocalizationMethod) -> Result<()> {
+        let _guard = runtime::enter()?;
+        unsafe {
+            ffi::tblite_push_back_post_processing_localization(
+                self.context.raw.ptr,
+                self.raw.ptr,
+                self.structure.raw.ptr,
+                method as u32,
             );
         }
         self.context.check()

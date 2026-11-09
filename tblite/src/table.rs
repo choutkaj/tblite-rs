@@ -100,7 +100,7 @@ macro_rules! table_vector {
             let _guard = runtime::enter()?;
             if values.is_empty() {
                 return Err(Error::input(
-                    "tblite 0.7 cannot reliably assign an empty table array",
+                    "tblite cannot reliably assign an empty table array",
                 ));
             }
             let n = int(values.len())?;
@@ -150,7 +150,7 @@ macro_rules! table_methods {
         table_vector!(set_i64_array, i64, tblite_table_set_int64_t);
         table_vector!(set_bool_array, bool, tblite_table_set_bool);
         pub fn kind(&self, key: &str) -> Result<ValueKind> {
-            // 0.7's native type query creates a child table for a missing key.
+            // The native type query creates a child table for a missing key.
             // Enumerate first so an apparently read-only Rust query stays read-only.
             let _guard = runtime::enter()?;
             cstring(key)?;
@@ -292,7 +292,7 @@ macro_rules! table_methods {
             let _guard = runtime::enter()?;
             if array.is_empty()? {
                 return Err(Error::input(
-                    "tblite 0.7 cannot reliably assign an empty table array",
+                    "tblite cannot reliably assign an empty table array",
                 ));
             }
             let key = cstring(key)?;
@@ -391,7 +391,7 @@ impl Table {
     /// Borrow the same table through a separately allocated native alias handle.
     pub fn borrow(&mut self) -> Result<TableRef<'_>> {
         let _guard = runtime::enter()?;
-        // The 0.7.0 header incorrectly declares tblite_table*. The Fortran
+        // The header incorrectly declares tblite_table*. The Fortran
         // bind(C) implementation takes the existing handle BY VALUE. Keep the
         // generated declaration faithful to the header, adapting only here.
         let raw = unsafe {

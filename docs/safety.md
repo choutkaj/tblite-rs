@@ -1,4 +1,4 @@
-# Safety, units and tblite 0.7.0 errata
+# Safety, units and tblite 0.8.0 errata
 
 `tblite-sys` is unsafe FFI. `tblite` keeps native pointers private and owns their
 lifetimes. A calculator owns its structure, context and restart result; atom
@@ -34,17 +34,17 @@ A logger must not wait for another thread that is waiting to call tblite.
 Unrelated native handles dropped inside callbacks are deleted after the outer
 native operation returns.
 
-The 0.7.0 native callback logger leaks one small internal error-handle allocation
+The native callback logger leaks one small internal error-handle allocation
 per used logger instance when replaced/destroyed. The wrapper leaves this native
 borrowed pointer's ownership intact rather than risking a double free with other
-0.7 builds. Valgrind checks report this known upstream leak separately. Ordinary
+0.8 builds. Valgrind checks report this known upstream leak separately. Ordinary
 Rust panic payloads are freed; if a user-defined panic payload also panics during
 destruction, the second payload is intentionally leaked to contain unwinding.
 
 The wrapper preserves native errors and drains context errors. Error strings
 grow as needed; the consuming context-error API has a 64 KiB buffer and marks
 truncation explicitly. Every safe native constructor checks the loaded version
-before allocating. This check assumes a library exporting the 0.7 ABI; the OS
+before allocating. This check assumes a library exporting the 0.8 ABI; the OS
 loader may reject a fundamentally incompatible DLL before Rust code runs.
 
 ## Numerical conventions
@@ -90,7 +90,7 @@ reuse its last successful wavefunction automatically.
 
 ## Release-specific adaptations
 
-These findings come from the pinned 0.7.0 Fortran implementation, not just the
+These findings come from the pinned 0.8.0 Fortran implementation, not just the
 header annotations. Regression tests exercise them:
 
 - `tblite_new_table` declares a pointer to a handle, but Fortran receives the
@@ -121,6 +121,15 @@ header annotations. Regression tests exercise them:
   handling. Rust checks ordinary path/permission failures before the call.
   Concurrent external file removal or I/O failures inside Fortran remain native
   limitations. Native getters trim trailing ASCII spaces from strings and keys.
+- The header of `tblite_set_context_partition` leaves the reduction of the
+  partial results to the caller. A single point with more than one part fails
+  instead, unless the context also has an MPI communicator
+  (`tblite_set_context_mpi`). `singlepoint` returns that native error.
+- Orbital localization works on the orbitals of the alpha electrons when the
+  calculation has one spin channel. For an open-shell molecule without spin
+  polarization, the singly occupied orbital is localized together with the
+  doubly occupied ones. The localized getters take their shapes from the
+  post-processing dictionary.
 
 The C table API supports nested tables and primitive arrays. Nested arrays,
 arrays of tables, datetimes and empty array assignment have no reliable public

@@ -37,10 +37,10 @@ pub(crate) fn enter_raw() -> Result<Gate> {
 pub(crate) fn enter() -> Result<Gate> {
     let guard = enter_raw()?;
     let v = unsafe { ffi::tblite_get_version() };
-    if !(700..800).contains(&v) {
+    if !(800..900).contains(&v) {
         return Err(Error {
             kind: ErrorKind::UnsupportedVersion,
-            message: format!("tblite 0.7.x required; loaded version code {v}"),
+            message: format!("tblite 0.8.x required; loaded version code {v}"),
         });
     }
     Ok(guard)

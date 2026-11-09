@@ -4,8 +4,8 @@ Original Rust code and project tooling are available under **MIT OR Apache-2.0**
 Copied tblite headers, license texts and upstream-derived material retain their
 notices and **LGPL-3.0-or-later** terms. The raw crate records this combination in
 its Cargo metadata. See [NOTICE.md](../NOTICE.md) and the complete
-[LGPL text](../tblite-sys/vendor/tblite-0.7.0/COPYING.LESSER) and
-[GPL text](../tblite-sys/vendor/tblite-0.7.0/COPYING).
+[LGPL text](../tblite-sys/vendor/tblite-0.8.0/COPYING.LESSER) and
+[GPL text](../tblite-sys/vendor/tblite-0.8.0/COPYING).
 
 Linking a Rust application to tblite does not remove the native library's
 license obligations. When distributing a combined application, LGPL v3 section

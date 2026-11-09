@@ -157,6 +157,24 @@ impl CalculationResult {
         let n = self.orbital_count()?;
         self.tensor(&[n, n], ffi::tblite_get_result_hamiltonian_matrix)
     }
+    /// Orbital coefficients after `Calculator::add_orbital_localization`, axes
+    /// [spin, orbital, atomic_orbital] as in `orbital_coefficients`. The
+    /// occupied orbitals of each spin channel are localized; the others keep
+    /// their canonical coefficients. With one spin channel, tblite localizes
+    /// as many orbitals as there are alpha electrons.
+    pub fn localized_orbital_coefficients(&self) -> Result<Tensor> {
+        let shape = self.post_processing()?.shape("localized-orbitals")?;
+        self.tensor(
+            &shape,
+            ffi::tblite_get_result_localized_orbital_coefficients,
+        )
+    }
+    /// Centers of the localized orbitals in Bohr, axes [spin, orbital, xyz].
+    /// Orbitals that are not localized have zero centers.
+    pub fn localized_orbital_centers(&self) -> Result<Tensor> {
+        let shape = self.post_processing()?.shape("localized-centers")?;
+        self.tensor(&shape, ffi::tblite_get_result_localized_orbital_centers)
+    }
     pub fn post_processing(&self) -> Result<PostProcessing> {
         let _guard = runtime::enter()?;
         self.ensure_complete()?;

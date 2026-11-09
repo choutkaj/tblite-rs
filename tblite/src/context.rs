@@ -1,5 +1,5 @@
 use crate::{
-    error::cstring,
+    error::{cstring, int},
     runtime::{self, Handle, IN_CALLBACK},
     Error, Result,
 };
@@ -45,6 +45,37 @@ impl Context {
         let _guard = runtime::enter()?;
         unsafe {
             ffi::tblite_set_context_color(self.raw.ptr, enabled.into());
+        }
+        self.check()
+    }
+    /// Assign this context the zero-based share `part` of `parts` equal shares
+    /// of the interaction loops. A calculation with more than one part needs an
+    /// MPI context ([`Context::set_mpi`]); without one, `singlepoint` fails.
+    /// `set_partition(0, 1)` restores the serial calculation.
+    pub fn set_partition(&mut self, part: usize, parts: usize) -> Result<()> {
+        let _guard = runtime::enter()?;
+        if part >= parts {
+            return Err(Error::input(
+                "partition index must be less than the number of parts",
+            ));
+        }
+        unsafe {
+            ffi::tblite_set_context_partition(self.raw.ptr, int(part)?, int(parts)?);
+        }
+        self.check()
+    }
+    /// Distribute the interaction loops over an MPI communicator and reduce the
+    /// partial results inside tblite. `communicator` is the Fortran handle that
+    /// `MPI_Comm_c2f` returns; `None` selects `MPI_COMM_WORLD`. Needs a tblite
+    /// built with MPI (`has_feature("mpi")`) and an initialized MPI library;
+    /// otherwise this returns the native error.
+    pub fn set_mpi(&mut self, communicator: Option<i32>) -> Result<()> {
+        let _guard = runtime::enter()?;
+        let ptr = communicator
+            .as_ref()
+            .map_or(std::ptr::null(), |comm| comm as *const i32);
+        unsafe {
+            ffi::tblite_set_context_mpi(self.raw.ptr, ptr);
         }
         self.check()
     }

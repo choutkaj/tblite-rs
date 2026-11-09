@@ -15,7 +15,7 @@ fn installed_c_abi_and_all_symbols() {
             tblite_rs_config_align(),
             std::mem::align_of::<tblite_sys::tblite_xtb_config>()
         );
-        assert_eq!(tblite_rs_link_symbols(), 117);
-        assert!((700..800).contains(&tblite_sys::tblite_get_version()));
+        assert_eq!(tblite_rs_link_symbols(), 123);
+        assert!((800..900).contains(&tblite_sys::tblite_get_version()));
     }
 }

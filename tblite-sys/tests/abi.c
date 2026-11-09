@@ -32,6 +32,7 @@ size_t tblite_rs_link_symbols(void) {
     (uintptr_t)&tblite_get_singlepoint,
     (uintptr_t)&tblite_push_back_post_processing_str,
     (uintptr_t)&tblite_push_back_post_processing_param,
+    (uintptr_t)&tblite_push_back_post_processing_localization,
     (uintptr_t)&tblite_new_electric_field,
     (uintptr_t)&tblite_new_spin_polarization,
     (uintptr_t)&tblite_calculator_push_back,
@@ -43,6 +44,8 @@ size_t tblite_rs_link_symbols(void) {
     (uintptr_t)&tblite_set_context_logger,
     (uintptr_t)&tblite_set_context_color,
     (uintptr_t)&tblite_set_context_verbosity,
+    (uintptr_t)&tblite_set_context_partition,
+    (uintptr_t)&tblite_set_context_mpi,
     (uintptr_t)&tblite_get_n_entries_dict,
     (uintptr_t)&tblite_get_array_entry_index,
     (uintptr_t)&tblite_get_array_size_index,
@@ -56,6 +59,7 @@ size_t tblite_rs_link_symbols(void) {
     (uintptr_t)&tblite_clear_error,
     (uintptr_t)&tblite_get_error,
     (uintptr_t)&tblite_set_error,
+    (uintptr_t)&tblite_get_feature,
     (uintptr_t)&tblite_new_param,
     (uintptr_t)&tblite_delete_param,
     (uintptr_t)&tblite_load_param,
@@ -84,6 +88,8 @@ size_t tblite_rs_link_symbols(void) {
     (uintptr_t)&tblite_get_result_density_matrix,
     (uintptr_t)&tblite_get_result_overlap_matrix,
     (uintptr_t)&tblite_get_result_hamiltonian_matrix,
+    (uintptr_t)&tblite_get_result_localized_orbital_coefficients,
+    (uintptr_t)&tblite_get_result_localized_orbital_centers,
     (uintptr_t)&tblite_get_post_processing_dict,
     (uintptr_t)&tblite_save_result_wavefunction,
     (uintptr_t)&tblite_load_result_wavefunction,
@@ -134,6 +140,7 @@ size_t tblite_rs_link_symbols(void) {
 }
 _Static_assert(sizeof(tblite_guess) == sizeof(unsigned int), "tblite_guess ABI");
 _Static_assert(sizeof(tblite_mixer) == sizeof(unsigned int), "tblite_mixer ABI");
+_Static_assert(sizeof(tblite_localization_method) == sizeof(unsigned int), "tblite_localization_method ABI");
 _Static_assert(sizeof(enum tblite_ref_solvation_state) == sizeof(unsigned int), "enum tblite_ref_solvation_state ABI");
 _Static_assert(sizeof(enum tblite_born_kernel) == sizeof(unsigned int), "enum tblite_born_kernel ABI");
 _Static_assert(sizeof(enum tblite_solvation_param) == sizeof(unsigned int), "enum tblite_solvation_param ABI");
@@ -142,6 +149,7 @@ _Static_assert(TBLITE_GUESS_SAD == 0, "TBLITE_GUESS_SAD value");
 _Static_assert(TBLITE_GUESS_EEQ == 1, "TBLITE_GUESS_EEQ value");
 _Static_assert(TBLITE_GUESS_EEQBC == 2, "TBLITE_GUESS_EEQBC value");
 _Static_assert(TBLITE_MIXER_BROYDEN == 1, "TBLITE_MIXER_BROYDEN value");
+_Static_assert(TBLITE_LOCALIZATION_FOSTERBOYS == 1, "TBLITE_LOCALIZATION_FOSTERBOYS value");
 _Static_assert(tblite_state_gsolv == 1, "tblite_state_gsolv value");
 _Static_assert(tblite_state_bar1mol == 2, "tblite_state_bar1mol value");
 _Static_assert(tblite_state_reference == 3, "tblite_state_reference value");

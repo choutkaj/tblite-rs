@@ -7,27 +7,27 @@ import argparse
 import hashlib
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import tarfile
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
-SHA256 = "7864755e3faeef43a2f334a1679f6ece525eb604837e772c6623c042214ea39f"
-URL = "https://codeload.github.com/tblite/tblite/tar.gz/refs/tags/v0.7.0"
+VERSION = "0.8.0"
+SHA256 = "987e7ac801e25d87590550f8f1bbcf8f9b560e1673d0bc40586c854084c97fa7"
+URL = f"https://codeload.github.com/tblite/tblite/tar.gz/refs/tags/v{VERSION}"
 # Commits resolved from the release's Meson wraps, including nested dependencies.
 DEPS = {
     "toml-f": ("https://github.com/toml-f/toml-f", "51a26158c6d52bbc59cb482bdd13f00d7fd032a3"),
-    "mctc-lib": ("https://github.com/grimme-lab/mctc-lib", "e9de066d89f250d1cfb6de3a33f0c27c0e2f855d"),
-    "dftd4": ("https://github.com/dftd4/dftd4", "6e1f59c3f39d919a2dbef0601d2576727c8b30e8"),
-    "s-dftd3": ("https://github.com/dftd3/simple-dftd3", "6f0b06fbfa8653a23ca55c453772ce3af4420706"),
-    "multicharge": ("https://github.com/grimme-lab/multicharge", "6a5d63f9e9e29dcf13cc47cc27f33bf9015681bf"),
-    "ddx": ("https://github.com/ddsolvation/ddX.git", "4d79e3d9caeae5e602683572a71cb550414f9b09"),
-    "mstore": ("https://github.com/grimme-lab/mstore", "663245d739be0123da61c917e55116b0c3db4c74"),
-    "jonquil": ("https://github.com/toml-f/jonquil", "4d43ffea512977602f654ab10067fcddb3e3c107"),
+    "mctc-lib": ("https://github.com/grimme-lab/mctc-lib", "aec7f40ccf1b0dceb9156ae6dc6667fd61206916"),
+    "dftd4": ("https://github.com/dftd4/dftd4", "1107ea7c7c2131719e306fd57a5f4a1579e2577e"),
+    "s-dftd3": ("https://github.com/dftd3/simple-dftd3", "84cb7cddd8d6669c4ecd59b06d53e0d373656239"),
+    "multicharge": ("https://github.com/grimme-lab/multicharge", "576f499b49eb57f8c2dc1ba6f7017800f1e332d9"),
+    "ddx": ("https://github.com/ddsolvation/ddX.git", "23de728143825695f54a04aeec2dd836b2ca9419"),
+    "mstore": ("https://github.com/grimme-lab/mstore", "6a166125738dd2f0edd62afd22c3479d7b8efbeb"),
+    "jonquil": ("https://github.com/toml-f/jonquil", "297fb2c2f7344ce4575e5b61b59da071044149bf"),
     "test-drive": ("https://github.com/fortran-lang/test-drive.git", "d16852743043963f294a5d9a3d5218e32c20ea7f"),
 }
-# These released C entry points have PRIVATE Fortran names in 0.7.0. GNU
+# These released C entry points have PRIVATE Fortran names. GNU
 # Fortran can hide their symbols on macOS (GCC PR126872). Explicit PUBLIC
 # declarations preserve the C ABI without changing any procedure bodies.
 C_API_PUBLIC = {
@@ -54,7 +54,7 @@ def patch_c_api_visibility(source, archive):
     with tarfile.open(archive) as tar:
         for filename, procedures in C_API_PUBLIC.items():
             relative = Path("src/tblite/api") / filename
-            with tar.extractfile(f"tblite-0.7.0/{relative.as_posix()}") as stream:
+            with tar.extractfile(f"tblite-{VERSION}/{relative.as_posix()}") as stream:
                 original = stream.read().decode("utf-8").replace("\r\n", "\n")
             marker = "   private\n"
             if original.count(marker) != 1:
@@ -92,13 +92,13 @@ def main():
         parser.error("Windows installation supports shared libraries only")
     work = args.work_dir.resolve()
     work.mkdir(parents=True, exist_ok=True)
-    archive = work / "tblite-0.7.0.tar.gz"
+    archive = work / f"tblite-{VERSION}.tar.gz"
     if not archive.exists():
         print(f"Downloading {URL}", flush=True)
         urllib.request.urlretrieve(URL, archive)
     if hashlib.sha256(archive.read_bytes()).hexdigest() != SHA256:
         raise RuntimeError(f"Checksum mismatch: {archive}; remove the file and retry")
-    source = work / "tblite-0.7.0"
+    source = work / f"tblite-{VERSION}"
     if not source.exists():
         with tarfile.open(archive) as tar:
             # The archive is verified; also restrict every extraction to this root.
@@ -119,13 +119,10 @@ def main():
         head = subprocess.check_output(["git", "-C", str(dep), "rev-parse", "HEAD"], text=True).strip()
         if head != revision:
             raise RuntimeError(f"{dep}: expected {revision}, found {head}; use a fresh --work-dir")
-    # Windows Git may materialize ddX's relative symlink as a text file.
-    stub = source / "subprojects/ddx/tests/standalone_tests/ddx_driver_testing.f90"
-    if not stub.is_symlink() and stub.read_text().strip() == "../../src/ddx_driver.f90":
-        shutil.copyfile(source / "subprojects/ddx/src/ddx_driver.f90", stub)
     # Ensure reused sources still match our public ABI baseline.
-    for header in (ROOT / "tblite-sys/vendor/tblite-0.7.0/include").rglob("*.h"):
-        relative = header.relative_to(ROOT / "tblite-sys/vendor/tblite-0.7.0")
+    vendor = ROOT / f"tblite-sys/vendor/tblite-{VERSION}"
+    for header in (vendor / "include").rglob("*.h"):
+        relative = header.relative_to(vendor)
         if header.read_bytes().replace(b"\r\n", b"\n") != (source / relative).read_bytes().replace(b"\r\n", b"\n"):
             raise RuntimeError(f"Public header differs: {relative}")
     build = (args.build_dir or work / ("build-minimal" if args.minimal else "build")).resolve()
@@ -134,7 +131,7 @@ def main():
                f"-Dddx={'false' if args.minimal else 'true'}", f"-Dhdf5={'disabled' if args.minimal else args.hdf5}",
                f"-Dtrexio={args.trexio}", "--wrap-mode=nodownload"]
     # Use the pinned local Fortran dependencies even if other versions are installed.
-    command += ["--force-fallback-for=" + ",".join(["toml-f", "mctc-lib", "dftd4", "s-dftd3", "multicharge", "ddx", "mstore", "jonquil", "test-drive"])]
+    command += ["--force-fallback-for=" + ",".join(DEPS)]
     if (build / "meson-private/coredata.dat").exists():
         command += ["--reconfigure"]
     if os.name == "nt":
@@ -143,7 +140,7 @@ def main():
     run(*command)
     run("meson", "compile", "-C", build, "-j", args.jobs)
     run("meson", "install", "-C", build)
-    print(f"Installed tblite 0.7.0 at {args.prefix.resolve()}")
+    print(f"Installed tblite {VERSION} at {args.prefix.resolve()}")
 
 if __name__ == "__main__":
     main()

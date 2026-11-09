@@ -1,6 +1,6 @@
 # Distributing tblite with an application
 
-`tools/bundle-native.py` builds a redistributable **tblite 0.7.0 runtime
+`tools/bundle-native.py` builds a redistributable **tblite 0.8.0 runtime
 bundle**: the shared library, every non-system library it loads, their licence
 texts and a `SOURCES.md` that records versions, checksums, build settings and
 source locations. An application ships `lib/`, `licenses/` and `SOURCES.md`
@@ -14,7 +14,7 @@ Never enable the `static` feature for a distributed application; see
 | Linux x86-64 | conda-forge GCC 16.2 and OpenBLAS against the glibc 2.28 sysroot, pinned in `tools/bundle/conda-linux-64.txt` | glibc 2.28 and later: RHEL, Rocky and Alma 8 and 9, Ubuntu 20.04 and later |
 
 macOS is not covered yet. Both platforms build the same sources as
-`tools/build-native.py`: the tblite 0.7.0 release with the dependency commits of
+`tools/build-native.py`: the tblite 0.8.0 release with the dependency commits of
 its Meson wraps and the C API visibility fix (see [installation](installation.md)),
 with ddX and without HDF5 or TREXIO.
 
@@ -82,7 +82,7 @@ to keep the toolchain elsewhere.
   `ADVAPI32`, the UCRT `api-ms-win-crt-*` sets; Linux: glibc) or a recorded
   runtime library with a known licence, and every bundled library finds its
   dependencies in `lib/`;
-- all 117 C API functions are exported;
+- all 123 C API functions are exported;
 - Linux: no library needs a glibc symbol version newer than 2.28;
 - it loads the bundle in a fresh process without any library search path, calls
   `tblite_get_version`, checks that every bundled library came from `lib/`, and

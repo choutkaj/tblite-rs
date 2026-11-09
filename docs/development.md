@@ -2,32 +2,31 @@
 
 ## Local validation
 
-The implementation was exercised on Windows x86-64 using MSVC Rust and an
-MSYS2 UCRT64 tblite DLL (GNU Fortran 16.2, OpenBLAS, HDF5), and on Linux x86-64
-under WSL using GNU Fortran 11.4. Linux tests passed with dynamic and static
-tblite, both with ddX/HDF5 enabled and with both disabled. The static executable's
-dependency list was checked to confirm it does not load libtblite.so.
+tblite 0.8.0 was tested locally with the runtime bundles of
+[distribution.md](distribution.md): on Windows x86-64 with MSVC Rust and the
+Windows bundle, and on Linux x86-64 under WSL with the Linux bundle. Both
+bundles use GNU Fortran 16.2, OpenBLAS, ddX and HDF5. The tests, examples and
+the MB16-43 parity benchmark passed on both.
 
-Both crates also passed a clean-copy build outside the local parent Cargo
-configuration and a `cargo +1.85.0 check --locked --workspace` check. The current
-checkout's verified Windows installation is `.native/install-win`, with MSYS2
-runtime DLLs in `.native/msys64/ucrt64/bin`. To use it from PowerShell:
+CI runs the other configurations on every commit: dynamic and static tblite
+on Linux (with ddX/HDF5 enabled and with both disabled) and on macOS ARM64 and
+x86-64 (enabled), and an MSYS2 UCRT64 DLL on Windows. It also checks the
+Rust 1.85 build. The
+static executable's dependency list is checked to confirm it does not load the
+shared tblite. TREXIO-enabled output and cross-compilation are not exercised.
+Each release must have a successful CI run for its own commit; see
+[releasing.md](releasing.md). Native integration is not simulated by mocks.
+
+To use a local bundle from PowerShell:
 
 ```powershell
-$env:TBLITE_DIR = (Resolve-Path .native/install-win).Path
-$msysRuntime = (Resolve-Path .native/msys64/ucrt64/bin).Path
-$env:PATH = "$env:TBLITE_DIR\bin;$msysRuntime;$env:PATH"
+$env:TBLITE_DIR = (Resolve-Path .native/tblite-windows-x86_64).Path
+$env:PATH = "$env:TBLITE_DIR\lib;$env:PATH"
 cargo run -p tblite --example singlepoint
 ```
 
-These ignored local build directories are not distributed in the repository;
-on another machine, follow [installation.md](installation.md).
-
-macOS ARM64 and x86-64 passed in CI, alongside Windows and both Linux native
-configurations, on [commit 82c37c2](https://github.com/choutkaj/tblite-rs/actions/runs/34028045023).
-macOS was not run locally. TREXIO-enabled output and cross-compilation were not
-exercised. Each release must have a successful CI run for its own commit;
-see [releasing.md](releasing.md). Native integration is not simulated by mocks.
+Local build directories under `.native/` are not part of the repository; on
+another machine, follow [installation.md](installation.md).
 
 Valgrind exercises the ownership, callback, restart, optional-feature and table
 paths. Run `python3 tools/check_memory.py` on Linux after installation. Its narrow
@@ -66,7 +65,7 @@ python3 tools/check_coverage.py --check
 ```
 
 The generator accepts only the small C declaration grammar actually present in
-the 12 pinned public headers. Unknown declarations or a changed function count
+the 13 pinned public headers. Unknown declarations or a changed function count
 fail generation. It uses standard Python and rustfmt, writes Rust declarations,
 a header checksum/signature manifest, and the C ABI/symbol test. To regenerate,
 run both commands without `--check`. End users build these checked-in files;
@@ -74,14 +73,14 @@ they need neither Python nor Clang.
 
 The `tblite-sys/abi-tests` feature compiles a C probe against the **installed**
 headers with the target C compiler, verifies C/Rust layouts and enum constants,
-and resolves all 117 native function addresses. It is a developer test feature,
+and resolves all 123 native function addresses. It is a developer test feature,
 not required for ordinary Cargo builds. CI checks formatting, generated files,
 coverage, examples and native tests on the platform matrix.
 
 Before upgrading the native baseline, inspect the Fortran `bind(C)` bodies,
 array assignments, optional allocation paths, ownership transfers and callback
-behavior as well as C declarations. Several 0.7.0 header annotations differ
-from the implementation; see [the documented errata](safety.md).
+behavior as well as C declarations. Several header annotations differ from
+the implementation; see [the documented errata](safety.md).
 
 ## Scope
 

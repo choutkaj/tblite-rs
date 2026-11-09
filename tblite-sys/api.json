@@ -1,14 +1,15 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
   "headers": {
-    "calculator.h": "a7f2c3d1369e2d1e3e990cf00a2a27dc89a8b803ef4e5c5ee4a59bf1108e95a0",
+    "calculator.h": "54b1b6d51d14ecb66c3c3acc5cc76d1a1b01c093ba145816922e1573eb3891ec",
     "container.h": "26283a5a99699eaac7fdd5cbfd107012657ea4bb88e3b542038610c66e70098d",
-    "context.h": "1a6a1e2ae15317103f14aa8892346b865f687dc4ee586a2951398794501878d9",
+    "context.h": "17b3cb3ceba3b2c15f6c6372ebf40eeafd5d64b518b1e9abfb7ff13d9c19698b",
     "double_dictionary.h": "518baa81117d78cc3270509ffe28b0ff117d609640eadd8aab103e6bc79b90e1",
     "error.h": "a98e8556c9930b1a6c090d3529a1b7fd7f52a21a077f7934c522009186785e5d",
+    "features.h": "32019321ac568cdcde2ec913acfeb1a4b8d4268c4d6a65d13d6b819f4af79865",
     "macros.h": "e5e3b35f617d2274b11a415fb58e78f4f44baa587c8938fdffdf7862c298d4f2",
     "param.h": "5e6b45ef3e2e9bf3f2779c4fa707f993cc48e369e72747299437f52b0abbaa78",
-    "result.h": "0a74362ec7f7a07b857f71aeb9344f4c618511d0d13e43b373139fe0d631ac77",
+    "result.h": "e6bd8e110bcfe8fb9bc01e249b028d829a6c187ffa9c829ec6c0aac3c03971d3",
     "solvation.h": "53b4069927f6412e0312bf29b8a0f3efc8c7c01db49a7f9d2aac675b19f32785",
     "structure.h": "dc2ab3cf13e0a767742238dfaa54a2e41895fff6cc05aeb418e2a6958512bb59",
     "table.h": "599366999daa13346c00c9bc9244efaf8007ea957ffddc6fa46f18f44449941f",
@@ -148,6 +149,12 @@
       "arguments": "tblite_context ctx,\n                                       tblite_calculator calc,\n                                       tblite_structure mol,\n                                       tblite_param param"
     },
     {
+      "name": "tblite_push_back_post_processing_localization",
+      "header": "calculator.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                                              tblite_calculator calc,\n                                              tblite_structure mol,\n                                              tblite_localization_method method"
+    },
+    {
       "name": "tblite_new_electric_field",
       "header": "container.h",
       "return": "tblite_container",
@@ -212,6 +219,18 @@
       "header": "context.h",
       "return": "void",
       "arguments": "tblite_context ctx,\n                             int verbosity"
+    },
+    {
+      "name": "tblite_set_context_partition",
+      "header": "context.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                             int part,\n                             int nparts"
+    },
+    {
+      "name": "tblite_set_context_mpi",
+      "header": "context.h",
+      "return": "void",
+      "arguments": "tblite_context ctx,\n                       const int* comm"
     },
     {
       "name": "tblite_get_n_entries_dict",
@@ -290,6 +309,12 @@
       "header": "error.h",
       "return": "void",
       "arguments": "tblite_error ,\n                 char* ,\n                 const int*"
+    },
+    {
+      "name": "tblite_get_feature",
+      "header": "features.h",
+      "return": "int",
+      "arguments": "const char* flag"
     },
     {
       "name": "tblite_new_param",
@@ -458,6 +483,18 @@
       "header": "result.h",
       "return": "void",
       "arguments": "tblite_error error,\n                                     tblite_result res,\n                                     double* hmat"
+    },
+    {
+      "name": "tblite_get_result_localized_orbital_coefficients",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                                 tblite_result res,\n                                                 double* cmat"
+    },
+    {
+      "name": "tblite_get_result_localized_orbital_centers",
+      "header": "result.h",
+      "return": "void",
+      "arguments": "tblite_error error,\n                                            tblite_result res,\n                                            double* centers"
     },
     {
       "name": "tblite_get_post_processing_dict",

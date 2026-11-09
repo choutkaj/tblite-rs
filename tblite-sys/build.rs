@@ -87,9 +87,9 @@ fn check_version(version: &str) {
     let mut parts = version.split('.');
     assert!(
         parts.next() == Some("0")
-            && parts.next() == Some("7")
+            && parts.next() == Some("8")
             && parts.next().and_then(|p| p.parse::<u32>().ok()).is_some(),
-        "Unsupported tblite {version}; these bindings require 0.7.x"
+        "Unsupported tblite {version}; these bindings require 0.8.x"
     );
 }
 
@@ -150,12 +150,12 @@ fn link_static_tblite(lib: &pkg_config::Library) {
 }
 
 fn probe(static_link: bool) -> pkg_config::Library {
-    let lib = pkg_config::Config::new().range_version("0.7.0".."0.8.0").statik(static_link).cargo_metadata(!static_link).probe("tblite").unwrap_or_else(|e| panic!("Cannot link tblite 0.7.x: {e}\nInstall tblite separately and set PKG_CONFIG_PATH or TBLITE_DIR. See docs/installation.md."));
+    let lib = pkg_config::Config::new().range_version("0.8.0".."0.9.0").statik(static_link).cargo_metadata(!static_link).probe("tblite").unwrap_or_else(|e| panic!("Cannot link tblite 0.8.x: {e}\nInstall tblite separately and set PKG_CONFIG_PATH or TBLITE_DIR. See docs/installation.md."));
     check_version(&lib.version);
     if static_link {
         assert!(lib.link_paths.iter().any(|p| p.join("libtblite.a").is_file()), "The `static` feature requires libtblite.a; rebuild tblite with --default-library=both or static");
         link_static_tblite(&lib);
-        // Meson's 0.7 metadata omits HDF5's Fortran module library and
+        // Meson's metadata omits HDF5's Fortran module library and
         // pkg-config's Rust adapter drops the GNU driver flag -fopenmp.
         let pcdir = pkg_config::get_variable("tblite", "pcfiledir").expect("tblite.pc location");
         let pc =
