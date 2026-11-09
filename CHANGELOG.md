@@ -23,7 +23,7 @@ tblite 0.7.x at build time and at run time.
   and macOS arm64 (conda-forge, macOS 11) from pinned toolchains: the shared
   library, its runtime libraries, licence texts and `SOURCES.md`. `--archive`
   packs a bundle as `tblite-0.8.0-<platform>.tar.gz`, and CI builds all three.
-  See [distribution](docs/distribution.md).
+  Releases attach the three bundles.
 - `tools/build-native.py --hdf5 disabled` builds without HDF5 and keeps ddX.
 
 Results change slightly from tblite 0.7.0. Across the 43 MB16-43 structures,
@@ -39,8 +39,7 @@ GFN2-xTB partial charges change by up to 1.6e-6 e and dipole components by up
 to 8.3e-6 e Bohr. The Rust and native results change by the same amounts on
 Windows and Linux.
 
-See the [release notes](docs/releases/v0.2.0.md) for the runtime bundles and
-validation.
+The documentation is now the README, CONTRIBUTING.md and the API docs.
 
 ## 0.1.0
 
@@ -56,6 +55,3 @@ Initial release of `tblite` and `tblite-sys`.
 - ABI checks, numerical and derivative tests, callback/ownership checks,
   native memory checks, and MB16-43 native/Rust parity reports.
 - Rust 1.85 minimum; native tblite 0.7.x must be installed separately.
-
-See the [release notes](docs/releases/v0.1.0.md) for platform validation and
-known limitations, and the [publishing guide](docs/releasing.md) for maintainers.

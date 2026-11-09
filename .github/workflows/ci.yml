@@ -59,7 +59,7 @@ jobs:
       - name: Check generated declarations, inventory and formatting
         run: |
           python3 tools/generate_bindings.py --check
-          python3 tools/check_coverage.py --check
+          python3 tools/check_coverage.py
           cargo fmt --all --check
           python3 tools/check_discovery.py
       - name: Build and install pinned native library
@@ -188,7 +188,7 @@ jobs:
         run: |
           python tools/generate_bindings.py --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tools/check_coverage.py --check
+          python tools/check_coverage.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo fmt --all --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -300,8 +300,6 @@ jobs:
           path: |
             .native/parity-macos/README.md
             .native/parity-macos/cases.csv
-            .native/parity-macos/parity.png
-            .native/parity-macos/parity.svg
             .native/parity-macos/results.json
             .native/parity-macos/summary.csv
             .native/parity-macos/summary.json

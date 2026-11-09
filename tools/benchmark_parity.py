@@ -180,7 +180,7 @@ def metrics(records):
     return rows
 
 
-def report(output, payload, plot=True):
+def report(output, payload):
     rows = metrics(payload["records"])
     save_json(output / "summary.json", rows)
     if rows:
@@ -206,76 +206,101 @@ def report(output, payload, plot=True):
                     row[f"{name}_max_abs_error"] = max(abs(a-b) for a, b in zip(record["native"][name], record["rust"][name]))
             writer.writerow(row)
     passed = len(compared) == 129 and len(rows) == 21 and all(r["pass"] for r in rows)
+    meta = payload["metadata"]
     lines = ["# MB16-43 native / Rust parity", "",
-             f"Result: **{'PASS' if passed else 'INCOMPLETE / FAIL'}**. {len(compared)}/{len(records)} attempted pairs compared; "
-             f"{len(failures)} execution or validation failures. Full benchmark requires 129 pairs.", "",
-             f"Both routes use native tblite {VERSION}. This tests binding fidelity on the 43 MB16-43 target "
-             "geometries, not accuracy against the GMTKN55 reference reaction energies.", "",
-             f"Run: {payload['metadata']['created_utc']} on {payload['metadata']['platform']}.", "",
-             "Settings: gas phase, original charge/spin, one electronic spin channel with alpha/beta "
-             "occupations, SAD guess, accuracy 0.01, at most 250 SCF steps, 300 K using tblite's "
-             f"legacy conversion (kT = {KT:.17g} Eh), fresh calculator per case, one OpenMP/BLAS thread.", "",
+             f"Result: **{'PASS' if passed else 'INCOMPLETE / FAIL'}**. {len(compared)} of 129 pairs compared, "
+             f"{len(failures)} failed.", "",
+             f"tblite {VERSION}, {meta['platform']}, {meta['created_utc']}. SAD guess, accuracy {ACCURACY}, "
+             f"at most 250 SCF iterations, kT = {KT:.17g} Eh (300 K), one OpenMP/BLAS thread.", "",
              "| Method | Property | Max absolute error | RMSE | Bound | Unit | Worst molecule | Pass |",
              "| --- | --- | ---: | ---: | ---: | --- | --- | --- |"]
     for r in rows:
         lines.append(f"| {r['method']} | {r['property']} | {r['max_abs_error']:.3e} | {r['rmse']:.3e} | "
                      f"{r['tolerance']:.1e} | {r['unit']} | {r['worst_molecule']} | {r['pass']} |")
-    lines += ["", "Energy correlations (descriptive; pass/fail uses absolute errors):", ""]
-    for r in rows:
-        if r["property"] == "energy":
-            corr = "undefined" if r["pearson_r"] is None else f"{r['pearson_r']:.16g}"
-            r2 = "undefined" if r["identity_r2"] is None else f"{r['identity_r2']:.16g}"
-            lines.append(f"- {r['method']}: Pearson r = {corr}; identity-line R² = {r2}.")
     if failures:
-        lines += ["", "All failed cases:", ""]
+        lines += ["", "Failed cases:", ""]
         for r in failures:
             lines.append(f"- {r['id']} / {r['method']}: {r['errors']}")
-    lines += ["", "[Raw paired values and run provenance](results.json) · [Metrics CSV](summary.csv) · [Per-case CSV](cases.csv)", "",
-              "Molecular virials are included, but this gas-phase set does not establish periodic, "
-              "solvation, field or explicitly spin-polarized parity. Numerical agreement is specific "
-              "to the recorded build and platform; other builds must rerun the benchmark.", ""]
-    if plot and compared:
-        make_plot(output, compared)
-        lines += ["![Parity and residuals](parity.png)", ""]
-    (output / "README.md").write_text("\n".join(lines), encoding="utf-8")
+    lines += ["", "Data: [results.json](results.json), [summary.csv](summary.csv), [cases.csv](cases.csv).", ""]
+    (output / "README.md").write_text("\n".join(lines), encoding="utf-8", newline="\n")
     return passed
 
 
-def make_plot(output, records):
+PROPERTIES = {"energy": "Energy", "energies": "Atomic energies", "gradient": "Gradient", "virial": "Virial",
+              "charges": "Charges", "dipole": "Dipole", "quadrupole": "Quadrupole"}
+PLATFORMS = {"windows": "Windows", "linux": "Linux", "macos": "macOS"}
+FLOOR = 1e-19  # where exact zeros are drawn on the log axis
+
+
+def platforms(results, output):
+    """Draw Rust - native and platform - platform differences for every report in `results`."""
+    import itertools
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import numpy as np
-    plt.rcParams.update({"font.size": 10, "axes.spines.top": False, "axes.spines.right": False,
-                         "svg.fonttype": "none"})
-    fig, axs = plt.subplots(2, 3, figsize=(13, 7.8), constrained_layout=True)
-    colors = ["#136F63", "#3266B0", "#B76323"]
-    for col, (method, color) in enumerate(zip(METHODS, colors)):
-        selected = [r for r in records if r["method"] == method]
-        if not selected:
-            continue
-        x = np.array([r["native"]["energy"][0] for r in selected])
-        y = np.array([r["rust"]["energy"][0] for r in selected])
-        lo, hi = min(x.min(), y.min()), max(x.max(), y.max())
-        top, bottom = axs[0, col], axs[1, col]
-        top.plot([lo, hi], [lo, hi], color="#A0A8AF", lw=1, zorder=0)
-        top.scatter(x, y, s=26, color=color, alpha=.85)
-        top.set(title=f"{method.upper()} · {len(selected)} structures", xlabel="Native energy (Eh)", ylabel="Rust energy (Eh)")
-        top.set_aspect("equal", adjustable="box")
-        indices = [int(r["id"].rsplit("-", 1)[1]) for r in selected]
-        delta = y-x
-        bottom.axhline(0, color="#A0A8AF", lw=1)
-        bottom.scatter(indices, delta, s=22, color=color)
-        bottom.ticklabel_format(axis="y", style="sci", scilimits=(0, 0), useOffset=False)
-        scale = max(float(np.max(np.abs(delta)))*1.3, 1e-14)
-        bottom.set(ylim=(-scale, scale), xlabel="MB16-43 structure number", ylabel="Rust − native energy (Eh)")
-        bottom.set_title(f"Max |ΔE| = {np.max(np.abs(delta)):.2e} Eh", fontsize=10)
-        for ax in (top, bottom):
-            ax.grid(alpha=.16)
-    fig.suptitle(f"tblite-rs / native tblite {VERSION}\nMB16-43 binding parity · residual axes magnified independently", fontsize=16)
-    fig.savefig(output / "parity.png", dpi=180)
-    fig.savefig(output / "parity.svg")
+    runs = {}
+    for folder in sorted(p for p in results.iterdir() if (p / "results.json").is_file()):
+        records = json.loads((folder / "results.json").read_text(encoding="utf-8"))["records"]
+        runs[folder.name] = {(r["id"], r["method"]): r for r in records if r["status"] == "compared"}
+    if len(runs) < 2 or any(len(r) != 129 for r in runs.values()):
+        raise SystemExit(f"Need complete reports of two or more platforms in {results}")
+
+    def largest(a, b):
+        return max(abs(x - y) for x, y in zip(a, b))
+
+    binding = {(m, q): [] for m in METHODS for q in PROPERTIES}
+    between = {(m, q): [] for m in METHODS for q in PROPERTIES}
+    for run in runs.values():
+        for (_, method), r in run.items():
+            for q in PROPERTIES:
+                binding[method, q].append(largest(r["rust"][q], r["native"][q]))
+    for a, b in itertools.combinations(runs.values(), 2):
+        for key, r in a.items():
+            for q in PROPERTIES:
+                between[key[1], q].append(largest(r["native"][q], b[key]["native"][q]))
+
+    text, muted, grid = "#0b0b0b", "#52514e", "#e6e5e1"
+    series = [("Rust − native, each platform", binding, "#2a78d6", -0.18),
+              ("Between platforms", between, "#eb6834", 0.18)]
+    plt.rcParams.update({"font.size": 10, "text.color": text, "axes.labelcolor": text,
+                         "xtick.color": muted, "ytick.color": muted, "axes.edgecolor": muted})
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4.6), sharey=True, facecolor="white")
+    rng = np.random.default_rng(0)
+    x = np.arange(len(PROPERTIES))
+    for ax, method in zip(axes, METHODS):
+        ax.set_facecolor("white")
+        for name, values, color, offset in series:
+            for i, q in enumerate(PROPERTIES):
+                y = np.maximum(values[method, q], FLOOR)
+                ax.scatter(i + offset + rng.uniform(-0.09, 0.09, len(y)), y, s=12, color=color,
+                           alpha=0.55, linewidths=0, label=name if i == 0 else None)
+        ax.set_yscale("log")
+        ax.set_ylim(FLOOR / 2, 3e-9)
+        ax.set_yticks([FLOOR, 1e-18, 1e-15, 1e-12, 1e-9], ["0", "1e-18", "1e-15", "1e-12", "1e-9"])
+        ax.minorticks_off()
+        ax.axhline(FLOOR * 3.5, color=grid, lw=1, ls=(0, (4, 3)), zorder=0)
+        ax.set_xticks(x, list(PROPERTIES.values()), fontsize=9, rotation=40, ha="right",
+                      rotation_mode="anchor")
+        ax.set_title(f"{method.upper()}-xTB", fontsize=11)
+        ax.grid(axis="y", color=grid, lw=0.8)
+        ax.set_axisbelow(True)
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+    axes[0].set_ylabel("Largest difference per molecule\n(atomic units)")
+    names = ", ".join(PLATFORMS.get(n, n) for n in runs)
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=2, frameon=False, markerscale=2.2,
+               bbox_to_anchor=(0.5, 1.0))
+    fig.text(0.5, 0.005, f"MB16-43, 43 molecules, tblite {VERSION} on {names}. Exact zeros are drawn at 0.",
+             ha="center", va="bottom", color=muted, fontsize=9)
+    fig.tight_layout(rect=(0, 0.04, 1, 0.92))
+    fig.savefig(output, dpi=150, facecolor="white")
     plt.close(fig)
+    for name, values, _, _ in series:
+        worst = {q: max(max(values[m, q]) for m in METHODS) for q in PROPERTIES}
+        print(f"{name.replace('−', '-')}: " + ", ".join(f"{q} {v:.1e} (bound {TOLERANCES[q]:.0e})" for q, v in worst.items()))
+    print(f"Figure: {output}")
 
 
 def run(args):
@@ -345,10 +370,10 @@ def run(args):
             save_json(output / "results.json", payload)
             print(f"{mol['id']} {method}: {record['status']} {record.get('pass', record['errors'])}", flush=True)
             if startup_failure:
-                report(output, payload, plot=False)
+                report(output, payload)
                 print("Stopped after the startup failure; fix the runtime path before retrying.", flush=True)
                 return 1
-    passed = report(output, payload, not args.no_plot)
+    passed = report(output, payload)
     print(f"Report: {output / 'README.md'}", flush=True)
     return 0 if passed else 1
 
@@ -365,15 +390,20 @@ def main():
     bench.add_argument("--timeout", type=int, default=120)
     bench.add_argument("--runtime-dir", type=Path, action="append", default=[],
                        help="additional native runtime library directory (repeatable)")
-    bench.add_argument("--no-plot", action="store_true")
     draw = sub.add_parser("report")
     draw.add_argument("output", type=Path)
+    figure = sub.add_parser("platforms", help="draw the cross-platform figure from the checked-in reports")
+    figure.add_argument("--results", type=Path, default=ROOT / "benchmarks/mb16-43/results")
+    figure.add_argument("--output", type=Path, default=ROOT / "benchmarks/mb16-43/platforms.png")
     args = parser.parse_args()
     if args.command == "prepare":
         prepare(args.source)
         return 0
+    if args.command == "platforms":
+        platforms(args.results, args.output)
+        return 0
     if args.command == "report":
-        return 0 if report(args.output, json.loads((args.output / "results.json").read_text())) else 1
+        return 0 if report(args.output, json.loads((args.output / "results.json").read_text(encoding="utf-8"))) else 1
     return run(args)
 
 

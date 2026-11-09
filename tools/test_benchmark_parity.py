@@ -99,7 +99,7 @@ class ParityChecks(unittest.TestCase):
                                     "errors": {"native": "SCF did not converge"}}]):
             with tempfile.TemporaryDirectory() as folder:
                 payload = {"metadata": {"created_utc": "test", "platform": "test"}, "records": records}
-                self.assertFalse(report(Path(folder), payload, plot=False))
+                self.assertFalse(report(Path(folder), payload))
                 self.assertIn("INCOMPLETE / FAIL", (Path(folder) / "README.md").read_text())
 
 

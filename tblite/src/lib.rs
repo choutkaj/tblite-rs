@@ -1,9 +1,5 @@
 //! Safe bindings for tblite 0.8.x.
 //!
-//! Numerical quantities use atomic units unless a method explicitly names a
-//! conversion. Native calls are serialized; tblite's internal OpenMP remains
-//! available. Set its thread settings before starting the process.
-//!
 //! ```no_run
 //! use tblite::{Calculator, Method, Structure};
 //! let mol = Structure::from_angstrom(&[8, 1, 1], &[
@@ -14,6 +10,58 @@
 //! println!("Energy: {} Hartree", result.energy()?);
 //! # Ok::<(), tblite::Error>(())
 //! ```
+//!
+//! # Units and layouts
+//!
+//! Values are in atomic units. [`Structure::from_angstrom`],
+//! [`angstrom_to_bohr`] and [`bohr_to_angstrom`] convert coordinates.
+//!
+//! | Quantity | Unit and layout |
+//! | --- | --- |
+//! | Coordinates, lattice vectors | Bohr, one row per atom or vector |
+//! | Energy | Hartree |
+//! | Gradient | dE/dR in Hartree/Bohr, one row per atom (forces are its negative) |
+//! | Virial | dE/dstrain in Hartree, `[3, 3]` |
+//! | Charges | e |
+//! | Dipole, quadrupole | atomic units; quadrupole packed xx, xy, yy, xz, yz, zz |
+//! | Electronic temperature | Hartree, or kelvin through [`Calculator::set_temperature_kelvin`] |
+//! | Orbital energies | Hartree, `[spin, orbital]` |
+//! | Orbital occupations | `[2, orbital]`, two rows even when restricted |
+//! | Orbital coefficients | `[spin, orbital, atomic_orbital]` |
+//! | Density matrix | `[spin, row, column]` |
+//!
+//! A [`Tensor`] is row-major. All indices start at zero.
+//!
+//! # Threads
+//!
+//! All native calls share one process-wide lock. Handles are neither `Send`
+//! nor `Sync`: create each calculator in the thread that uses it. tblite and
+//! OpenBLAS still run OpenMP threads; set `OMP_NUM_THREADS` and
+//! `OPENBLAS_NUM_THREADS` before the process starts. Code that also calls
+//! `tblite-sys` directly needs its own lock around those calls.
+//!
+//! # Errors and panics
+//!
+//! Native errors become [`Error`]. A panic in a logger callback becomes an
+//! error at the C boundary, unless the application aborts on panic. Every
+//! constructor checks that the loaded library is tblite 0.8.x.
+//!
+//! # Restarts
+//!
+//! A calculator reuses its last wavefunction for the next calculation.
+//! Wavefunction files hold no calculated properties: load one with
+//! [`CalculationResult::load_wavefunction`], pass it to
+//! [`Calculator::set_restart`] and calculate again. Use it only with the same
+//! method, charge and spin.
+//!
+//! # Limits of the tblite 0.8.0 C API
+//!
+//! - A [`Context::set_partition`] with more than one part needs MPI.
+//! - Tables hold no nested arrays, arrays of tables, datetimes or empty
+//!   arrays. [`Table::from_toml_str`] rejects them.
+//! - Native string getters trim trailing spaces.
+//!
+//! The methods affected by other tblite 0.8.0 defects document them.
 #![deny(unsafe_op_in_unsafe_fn)]
 
 mod calculator;
@@ -37,6 +85,11 @@ pub use result::{CalculationResult, PostProcessing};
 pub use structure::{Structure, StructureBuilder};
 pub use table::{Array, ArrayRef, Table, TableRef, ValueKind};
 pub use tensor::Tensor;
+
+// Compiles and runs the README's example.
+#[cfg(doctest)]
+#[doc = include_str!("../../README.md")]
+struct ReadmeDoctests;
 
 /// CODATA 2018 Bohr radius in angstrom (consistent with tblite's mctc-lib).
 pub const BOHR_TO_ANGSTROM: f64 = 0.529_177_210_903;

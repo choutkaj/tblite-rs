@@ -149,6 +149,7 @@ macro_rules! table_methods {
         table_vector!(set_f64_array, f64, tblite_table_set_double);
         table_vector!(set_i64_array, i64, tblite_table_set_int64_t);
         table_vector!(set_bool_array, bool, tblite_table_set_bool);
+        /// The kind of the value at `key`. Never inserts `key`, unlike tblite's own query.
         pub fn kind(&self, key: &str) -> Result<ValueKind> {
             // The native type query creates a child table for a missing key.
             // Enumerate first so an apparently read-only Rust query stays read-only.
@@ -288,6 +289,8 @@ macro_rules! table_methods {
             })
         }
         /// Copy a nonempty owning array into this table; the array remains usable.
+        /// Empty arrays are rejected: tblite 0.8.0 assigns them with an
+        /// uninitialized status.
         pub fn set_array(&mut self, key: &str, array: &Array) -> Result<()> {
             let _guard = runtime::enter()?;
             if array.is_empty()? {
@@ -307,7 +310,8 @@ macro_rules! table_methods {
             }
             err.check()
         }
-        /// Serialize through tblite's native TOML writer.
+        /// Serialize through tblite's native TOML writer. Path and permission
+        /// errors are checked first, because the writer does not report I/O errors.
         pub fn dump(&self, path: impl AsRef<Path>) -> Result<()> {
             let _guard = runtime::enter()?;
             let native_path = filename(path.as_ref())?;

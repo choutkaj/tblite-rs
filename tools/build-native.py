@@ -1,7 +1,7 @@
 """Install a pinned tblite independently of Cargo (Python 3.10+).
 
 Prerequisites: Meson, Ninja, Git, a Fortran/C/C++ toolchain, OpenBLAS and
-optionally HDF5 with Fortran modules. See docs/installation.md.
+optionally HDF5 with Fortran modules. The README lists the commands per platform.
 """
 import argparse
 import hashlib
