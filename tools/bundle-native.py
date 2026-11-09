@@ -247,11 +247,13 @@ class Macos(Conda):
     def environment(self):
         lib = self.prefix / "lib"
         env = without(FLAGS | LOADER | {"LIBRARY_PATH", "CPATH", "SDKROOT", "MACOSX_DEPLOYMENT_TARGET"})
+        # The rpath lets Meson's test programs find the toolchain's libc++; finish() replaces
+        # every rpath of the bundled libraries.
         env.update(PATH=f"{self.prefix / 'bin'}{os.pathsep}{env['PATH']}", FC=str(self.tool("gfortran")),
                    CC=str(self.tool("clang")), CXX=str(self.tool("clang++")), AR=str(self.tool("ar")),
                    PKG_CONFIG_LIBDIR=str(lib / "pkgconfig"), SDKROOT=self.sdk,
                    MACOSX_DEPLOYMENT_TARGET=f"{MACOS[0]}.{MACOS[1]}",
-                   LDFLAGS=f"-L{lib} -isysroot {self.sdk} -Wl,-headerpad_max_install_names")
+                   LDFLAGS=f"-L{lib} -Wl,-rpath,{lib} -isysroot {self.sdk} -Wl,-headerpad_max_install_names")
         return env
 
     def is_system(self, name):
