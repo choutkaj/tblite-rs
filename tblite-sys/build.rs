@@ -155,7 +155,7 @@ fn probe(static_link: bool) -> pkg_config::Library {
     if static_link {
         assert!(lib.link_paths.iter().any(|p| p.join("libtblite.a").is_file()), "The `static` feature requires libtblite.a; rebuild tblite with --default-library=both or static");
         link_static_tblite(&lib);
-        // Meson's 0.7 metadata omits HDF5's Fortran module library and
+        // Meson's metadata omits HDF5's Fortran module library and
         // pkg-config's Rust adapter drops the GNU driver flag -fopenmp.
         let pcdir = pkg_config::get_variable("tblite", "pcfiledir").expect("tblite.pc location");
         let pc =

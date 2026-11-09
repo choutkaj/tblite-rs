@@ -2,32 +2,31 @@
 
 ## Local validation
 
-The implementation was exercised on Windows x86-64 using MSVC Rust and an
-MSYS2 UCRT64 tblite DLL (GNU Fortran 16.2, OpenBLAS, HDF5), and on Linux x86-64
-under WSL using GNU Fortran 11.4. Linux tests passed with dynamic and static
-tblite, both with ddX/HDF5 enabled and with both disabled. The static executable's
-dependency list was checked to confirm it does not load libtblite.so.
+tblite 0.8.0 was tested locally with the runtime bundles of
+[distribution.md](distribution.md): on Windows x86-64 with MSVC Rust and the
+Windows bundle, and on Linux x86-64 under WSL with the Linux bundle. Both
+bundles use GNU Fortran 16.2, OpenBLAS, ddX and HDF5. The tests, examples and
+the MB16-43 parity benchmark passed on both.
 
-Both crates also passed a clean-copy build outside the local parent Cargo
-configuration and a `cargo +1.85.0 check --locked --workspace` check. The current
-checkout's verified Windows installation is `.native/install-win`, with MSYS2
-runtime DLLs in `.native/msys64/ucrt64/bin`. To use it from PowerShell:
+CI runs the other configurations on every commit: dynamic and static tblite
+on Linux (with ddX/HDF5 enabled and with both disabled) and on macOS ARM64 and
+x86-64 (enabled), and an MSYS2 UCRT64 DLL on Windows. It also checks the
+Rust 1.85 build. The
+static executable's dependency list is checked to confirm it does not load the
+shared tblite. TREXIO-enabled output and cross-compilation are not exercised.
+Each release must have a successful CI run for its own commit; see
+[releasing.md](releasing.md). Native integration is not simulated by mocks.
+
+To use a local bundle from PowerShell:
 
 ```powershell
-$env:TBLITE_DIR = (Resolve-Path .native/install-win).Path
-$msysRuntime = (Resolve-Path .native/msys64/ucrt64/bin).Path
-$env:PATH = "$env:TBLITE_DIR\bin;$msysRuntime;$env:PATH"
+$env:TBLITE_DIR = (Resolve-Path .native/tblite-windows-x86_64).Path
+$env:PATH = "$env:TBLITE_DIR\lib;$env:PATH"
 cargo run -p tblite --example singlepoint
 ```
 
-These ignored local build directories are not distributed in the repository;
-on another machine, follow [installation.md](installation.md).
-
-macOS ARM64 and x86-64 passed in CI, alongside Windows and both Linux native
-configurations, on [commit 82c37c2](https://github.com/choutkaj/tblite-rs/actions/runs/34028045023).
-macOS was not run locally. TREXIO-enabled output and cross-compilation were not
-exercised. Each release must have a successful CI run for its own commit;
-see [releasing.md](releasing.md). Native integration is not simulated by mocks.
+Local build directories under `.native/` are not part of the repository; on
+another machine, follow [installation.md](installation.md).
 
 Valgrind exercises the ownership, callback, restart, optional-feature and table
 paths. Run `python3 tools/check_memory.py` on Linux after installation. Its narrow
