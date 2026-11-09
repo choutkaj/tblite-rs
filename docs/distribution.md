@@ -145,7 +145,8 @@ silicon loads only signed code. The bundle has no other signature.
 - **Threads:** `OMP_NUM_THREADS` sets tblite's OpenMP threads and
   `OPENBLAS_NUM_THREADS` OpenBLAS's. Windows' OpenBLAS uses OpenMP
   (`MAX_THREADS=64`), Linux's its own threads (`MAX_THREADS=128`). On macOS,
-  tblite and OpenBLAS share LLVM's OpenMP runtime, `libomp`. Set both.
+  tblite and OpenBLAS share LLVM's OpenMP runtime, `libomp`
+  (`MAX_THREADS=128`). Set both.
 - **CPUs:** the Windows and Linux libraries target the x86-64 baseline, and
   OpenBLAS picks optimized kernels for the CPU it runs on. The macOS libraries
   run on every Apple silicon processor.

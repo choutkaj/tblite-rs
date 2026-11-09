@@ -16,6 +16,7 @@ experiment. No structures are selected by agreement, optimized or dropped.
 
 - [Windows x86-64, MSVC Rust / the Windows runtime bundle](results/windows/README.md)
 - [Linux x86-64 under WSL / the Linux runtime bundle](results/linux/README.md)
+- [macOS arm64 in CI / the macOS runtime bundle](results/macos/README.md)
 
 Reports include correlation, maximum absolute error, MAE, RMSE, signed bias,
 worst molecule, per-case CSV, every paired value, identity plots and magnified
@@ -56,7 +57,8 @@ Install native tblite 0.8.0 and its standalone executable following
 [installation.md](../../docs/installation.md). Both routes must load the same
 native build. The reports above use the runtime bundles of
 [distribution.md](../../docs/distribution.md), with the `tblite` executable
-from the bundle's build (`.native/bundle/install/bin`). `--library` sets its search directory and records its checksum;
+from the bundle's build (`.native/bundle/install/bin`). The macOS report comes from
+the `Runtime bundle / macOS arm64` CI job. `--library` sets its search directory and records its checksum;
 repeatable `--runtime-dir` arguments add dependency directories. Executable,
 driver, script and dataset hashes, Rust revision, versions, platform and
 numerical settings are recorded in `results.json`.

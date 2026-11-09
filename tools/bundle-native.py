@@ -236,7 +236,7 @@ class Macos(Conda):
     host = "arm64-apple-darwin20.0.0"
     lock = "conda-osx-arm64.txt"
     # conda-forge builds OpenBLAS for Apple silicon only, which covers every Apple M processor.
-    blas = ("VORTEX", "it uses its kernels for Apple silicon (`VORTEX`; {core} on the build machine)")
+    blas = ("VORTEX", "it uses its kernels for Apple silicon (`VORTEX`)")
     DYLIBS = {"LC_LOAD_DYLIB", "LC_LOAD_WEAK_DYLIB", "LC_REEXPORT_DYLIB", "LC_LAZY_LOAD_DYLIB",
               "LC_LOAD_UPWARD_DYLIB"}
 
