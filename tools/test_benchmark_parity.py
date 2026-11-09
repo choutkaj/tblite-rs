@@ -11,11 +11,11 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from benchmark_parity import NativeStartupError, execute, metrics, report, run, validate
+from benchmark_parity import VERSION, NativeStartupError, execute, metrics, report, run, validate
 
 
 def result(energy=-4.0):
-    return {"version": "0.7.0", "energy": [energy], "energies": [-1.0, energy+1],
+    return {"version": VERSION, "energy": [energy], "energies": [-1.0, energy+1],
             "gradient": [.1, -.2, .3, -.1, .2, -.3], "virial": list(range(9)),
             "charges": [.1, -.1], "dipole": [1., 2., 3.], "quadrupole": list(range(6))}
 

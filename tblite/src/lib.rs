@@ -1,4 +1,4 @@
-//! Safe bindings for tblite 0.7.x.
+//! Safe bindings for tblite 0.8.x.
 //!
 //! Numerical quantities use atomic units unless a method explicitly names a
 //! conversion. Native calls are serialized; tblite's internal OpenMP remains
@@ -27,8 +27,8 @@ mod table;
 mod tensor;
 
 pub use calculator::{
-    BornKernel, Calculator, CalculatorConfig, DdxModel, Guess, Method, Mixer, ReferenceState,
-    Solvation, SolvationVersion,
+    BornKernel, Calculator, CalculatorConfig, DdxModel, Guess, LocalizationMethod, Method, Mixer,
+    ReferenceState, Solvation, SolvationVersion,
 };
 pub use context::Context;
 pub use error::{Error, ErrorKind, Result};
@@ -47,6 +47,14 @@ pub fn angstrom_to_bohr(x: f64) -> f64 {
 /// Convert Bohr coordinates to angstrom.
 pub fn bohr_to_angstrom(x: f64) -> f64 {
     x * BOHR_TO_ANGSTROM
+}
+
+/// Whether the loaded library was built with an optional feature: `ddx`,
+/// `hdf5`, `trexio`, `mpi` or `scalapack`. Unknown names return `false`.
+pub fn has_feature(name: &str) -> Result<bool> {
+    let _guard = runtime::enter()?;
+    let name = error::cstring(name)?;
+    Ok(unsafe { tblite_sys::tblite_get_feature(name.as_ptr()) } != 0)
 }
 
 /// Version of the loaded library. This query also works for unsupported versions.

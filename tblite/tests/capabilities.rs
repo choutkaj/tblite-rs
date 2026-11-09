@@ -48,6 +48,34 @@ fn charge_spin_updates_and_post_processing_parameters() -> Result<()> {
 }
 
 #[test]
+fn features_partitions_and_mpi() -> Result<()> {
+    assert!(!has_feature("not-a-feature")?);
+    assert!(has_feature("bad\0name").is_err());
+    let energy = Calculator::new(water()?, Method::Gfn2)?
+        .singlepoint()?
+        .energy()?;
+    let mut context = Context::new()?;
+    assert!(context.set_partition(2, 2).is_err());
+    assert!(context.set_partition(0, 0).is_err());
+    context.set_partition(0, 1)?;
+    let mut calc =
+        Calculator::with_context(water()?, Method::Gfn2, context, CalculatorConfig::default())?;
+    assert!((calc.singlepoint()?.energy()? - energy).abs() < 1e-10);
+    // Partial results of several parts need MPI to be reduced.
+    calc.context_mut().set_partition(1, 2)?;
+    let error = calc.singlepoint().err().expect("two parts need MPI");
+    assert!(error.to_string().contains("MPI"), "{error}");
+    calc.context_mut().set_partition(0, 1)?;
+    assert!((calc.singlepoint()?.energy()? - energy).abs() < 1e-10);
+    if !has_feature("mpi")? {
+        assert!(calc.context_mut().set_mpi(None).is_err());
+        assert!(calc.context_mut().set_mpi(Some(0)).is_err());
+        assert!((calc.singlepoint()?.energy()? - energy).abs() < 1e-10);
+    }
+    Ok(())
+}
+
+#[test]
 fn parameter_files_and_invalid_paths() -> Result<()> {
     let path =
         std::env::temp_dir().join(format!("tblite-rs-{}-parameters.toml", std::process::id()));

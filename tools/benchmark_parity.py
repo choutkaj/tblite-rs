@@ -1,4 +1,4 @@
-"""MB16-43 parity against the native tblite 0.7.0 Fortran CLI.
+"""MB16-43 parity against the native tblite Fortran CLI.
 
 Requires Python 3.10+, numpy and matplotlib; neither is a library dependency.
 See benchmarks/mb16-43/README.md for provenance, scope and reproduction.
@@ -17,6 +17,7 @@ import subprocess
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
+VERSION = "0.8.0"
 DATA = ROOT / "benchmarks/mb16-43/structures.json"
 SOURCE_COMMIT = "663245d739be0123da61c917e55116b0c3db4c74"
 SOURCE_SHA256 = "4281f4e7f39c514ed449de49ee255b698b1a7d410f0625553e9b70c0893228a6"
@@ -24,7 +25,7 @@ SYMBOLS = "X H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar".split()
 METHODS = ["gfn1", "gfn2", "ipea1"]
 ACCURACY = 0.01
 TEMPERATURE_K = 300.0
-# tblite v0.7.0 app/driver_run.f90 (also the C API's default).
+# tblite app/driver_run.f90 (also the C API's default).
 KT = TEMPERATURE_K * 3.166808578545117e-6
 # Absolute bounds, chosen before the first run. Correlation is descriptive only.
 TOLERANCES = {"energy": 1e-8, "energies": 1e-8, "gradient": 1e-7,
@@ -126,8 +127,8 @@ def validate(result, nat):
     import numpy as np
     sizes = {"energy": 1, "energies": nat, "gradient": 3*nat, "virial": 9,
              "charges": nat, "dipole": 3, "quadrupole": 6}
-    if result["version"] != "0.7.0":
-        raise ValueError(f"expected native version 0.7.0, got {result['version']}")
+    if result["version"] != VERSION:
+        raise ValueError(f"expected native version {VERSION}, got {result['version']}")
     for name, size in sizes.items():
         arr = np.asarray(result[name], dtype=float)
         if arr.shape != (size,) or not np.isfinite(arr).all():
@@ -208,11 +209,11 @@ def report(output, payload, plot=True):
     lines = ["# MB16-43 native / Rust parity", "",
              f"Result: **{'PASS' if passed else 'INCOMPLETE / FAIL'}**. {len(compared)}/{len(records)} attempted pairs compared; "
              f"{len(failures)} execution or validation failures. Full benchmark requires 129 pairs.", "",
-             "Both routes use native tblite 0.7.0. This tests binding fidelity on the 43 MB16-43 target "
+             f"Both routes use native tblite {VERSION}. This tests binding fidelity on the 43 MB16-43 target "
              "geometries, not accuracy against the GMTKN55 reference reaction energies.", "",
              f"Run: {payload['metadata']['created_utc']} on {payload['metadata']['platform']}.", "",
              "Settings: gas phase, original charge/spin, one electronic spin channel with alpha/beta "
-             "occupations, SAD guess, accuracy 0.01, at most 250 SCF steps, 300 K using tblite 0.7.0's "
+             "occupations, SAD guess, accuracy 0.01, at most 250 SCF steps, 300 K using tblite's "
              f"legacy conversion (kT = {KT:.17g} Eh), fresh calculator per case, one OpenMP/BLAS thread.", "",
              "| Method | Property | Max absolute error | RMSE | Bound | Unit | Worst molecule | Pass |",
              "| --- | --- | ---: | ---: | ---: | --- | --- | --- |"]
@@ -271,7 +272,7 @@ def make_plot(output, records):
         bottom.set_title(f"Max |ΔE| = {np.max(np.abs(delta)):.2e} Eh", fontsize=10)
         for ax in (top, bottom):
             ax.grid(alpha=.16)
-    fig.suptitle("tblite-rs / native tblite 0.7.0\nMB16-43 binding parity · residual axes magnified independently", fontsize=16)
+    fig.suptitle(f"tblite-rs / native tblite {VERSION}\nMB16-43 binding parity · residual axes magnified independently", fontsize=16)
     fig.savefig(output / "parity.png", dpi=180)
     fig.savefig(output / "parity.svg")
     plt.close(fig)

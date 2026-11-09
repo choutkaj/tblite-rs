@@ -1,4 +1,4 @@
-"""Build a redistributable tblite 0.7.0 runtime bundle (Python 3.10+).
+"""Build a redistributable tblite runtime bundle (Python 3.10+).
 
 The bundle is the shared tblite library with every non-system library it
 loads, their licence texts and SOURCES.md:
@@ -32,6 +32,8 @@ sys.dont_write_bytecode = True
 _spec = importlib.util.spec_from_file_location("build_native", ROOT / "tools/build-native.py")
 native = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(native)
+VERSION = native.VERSION
+SERIES = VERSION.rsplit(".", 1)[0] + ".x"
 
 GLIBC = (2, 28)
 # tblite and the subprojects compiled into its library, with their licences
@@ -251,7 +253,7 @@ class Windows:
 
     def finish(self, lib):
         return ["`tblite.lib` is the MSVC import library, generated from the DLL by "
-                "`tools/windows-import-library.ps1`, which also checks all 117 C API exports."]
+                "`tools/windows-import-library.ps1`, which also checks every C API export."]
 
     def owner(self, path):
         # pacman takes the path inside the MSYS2 root.
@@ -314,7 +316,7 @@ def write_pc(lib):
     (lib / "pkgconfig").mkdir()
     (lib / "pkgconfig/tblite.pc").write_text(
         "prefix=${pcfiledir}/../..\nincludedir=${prefix}/include\nlibdir=${prefix}/lib\n\n"
-        "Name: tblite\nDescription: Light-weight tight-binding framework\nVersion: 0.7.0\n"
+        f"Name: tblite\nDescription: Light-weight tight-binding framework\nVersion: {VERSION}\n"
         "Libs: -L${libdir} -ltblite\nCflags: -I${includedir}\n", encoding="utf-8", newline="\n")
 
 def main():
@@ -350,7 +352,7 @@ def main():
         env=target.environment())
     if compiled_subprojects(build) != set(COMPILED) - {"tblite"}:
         raise RuntimeError(f"tblite links {sorted(compiled_subprojects(build))}, not the recorded subprojects")
-    tree = source / "tblite-0.7.0"
+    tree = source / f"tblite-{VERSION}"
 
     lib = out / "lib"
     (out / "include/tblite").mkdir(parents=True)
@@ -394,7 +396,8 @@ def main():
     if smoke.returncode:
         raise RuntimeError(f"The bundle does not load:\n{smoke.stderr}")
     loaded = json.loads(smoke.stdout)
-    if loaded["version"] != 700 or "DYNAMIC_ARCH" not in loaded["config"].split():
+    code = sum(int(part) * 100 ** i for i, part in enumerate(reversed(VERSION.split("."))))
+    if loaded["version"] != code or "DYNAMIC_ARCH" not in loaded["config"].split():
         raise RuntimeError(f"Unexpected tblite version or OpenBLAS build: {loaded}")
     outside = {name: path for name, path in loaded["loaded"].items() if Path(path).resolve().parent != lib.resolve()}
     if outside or set(loaded["loaded"]) | set(loaded["before"]) != set(loaded["bundled"]):
@@ -403,11 +406,11 @@ def main():
     print(f"Bundle for {target.name} in {out}")
 
 def write_sources(out, target, owners, loaded, notes):
-    lines = [f"# tblite 0.7.0 runtime bundle, {target.name}", "",
-             f"tblite 0.7.0 as a shared library, with the runtime libraries it loads, for {target.description}. "
+    lines = [f"# tblite {VERSION} runtime bundle, {target.name}", "",
+             f"tblite {VERSION} as a shared library, with the runtime libraries it loads, for {target.description}. "
              f"Built by tblite-rs `tools/bundle-native.py` at {git_revision()}.", "",
              "Applications load these libraries at run time. Replacing them with an interface-compatible build, "
-             "tblite 0.7.x with its C API, runs the application with a modified tblite (LGPL-3.0 section "
+             f"tblite {SERIES} with its C API, runs the application with a modified tblite (LGPL-3.0 section "
              "4(d)(1)); this recipe rebuilds them from modified sources. The licence texts are in `licenses/`.",
              "", "## Files", "", "| File | Contents | Licence | SHA-256 |", "| --- | --- | --- | --- |"]
     for path in sorted(p for p in out.rglob("*") if p.is_file() and not p.is_symlink()):
@@ -415,11 +418,11 @@ def write_sources(out, target, owners, loaded, notes):
         if path.name in owners:
             contents, licence = owners[path.name]["package"], RUNTIME[path.name][0]
         elif relative.startswith("lib/") and "tblite" in path.name and not relative.endswith(".pc"):
-            contents = "tblite 0.7.0 and the projects compiled into it" + (
+            contents = f"tblite {VERSION} and the projects compiled into it" + (
                 ", MSVC import library" if path.suffix == ".lib" else "")
             licence = "LGPL-3.0-or-later, with Apache-2.0 and MIT parts"
         elif relative.startswith("include/"):
-            contents, licence = "tblite 0.7.0 C header", "LGPL-3.0-or-later"
+            contents, licence = f"tblite {VERSION} C header", "LGPL-3.0-or-later"
         elif relative.startswith("licenses/"):
             contents, licence = "licence text", ""
         else:
@@ -428,13 +431,13 @@ def write_sources(out, target, owners, loaded, notes):
     lines += ["", "## tblite and the projects compiled into it", "",
               "`tools/build-native.py` builds these from source into the one tblite library:", "",
               "| Project | Version | Licence | Source |", "| --- | --- | --- | --- |",
-              f"| tblite | 0.7.0 | {COMPILED['tblite'][0]} | {native.URL} (SHA-256 `{native.SHA256}`) |"]
+              f"| tblite | {VERSION} | {COMPILED['tblite'][0]} | {native.URL} (SHA-256 `{native.SHA256}`) |"]
     for name, (licence, _) in COMPILED.items():
         if name != "tblite":
             url, revision = native.DEPS[name]
             lines.append(f"| {name} | commit `{revision}` | {licence} | {url.removesuffix('.git')} |")
-    lines += ["", "The commits are those the Meson wraps of the tblite 0.7.0 release resolve to. One change is "
-              "applied to the release: the 13 released C entry points whose Fortran names are `PRIVATE` in 0.7.0 "
+    lines += ["", f"The commits are those the Meson wraps of the tblite {VERSION} release resolve to. One change is "
+              f"applied to the release: the 13 released C entry points whose Fortran names are `PRIVATE` in {VERSION} "
               "are declared `PUBLIC` in `src/tblite/api/{calculator,container,double_dictionary,error,result}.f90`, "
               "so every platform's library exports them (GCC PR126872). No signature or procedure body changes; "
               "`patch_c_api_visibility` in `tools/build-native.py` is the exact edit.", "",

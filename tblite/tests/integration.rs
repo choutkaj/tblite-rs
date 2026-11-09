@@ -23,7 +23,7 @@ fn temp(name: &str) -> std::path::PathBuf {
 #[test]
 fn reference_energies_and_parameters() -> Result<()> {
     assert_eq!(version()?.0, 0);
-    assert_eq!(version()?.1, 7);
+    assert_eq!(version()?.1, 8);
     for (method, expected) in [
         (Method::Gfn1, -34.98079463818),
         (Method::Gfn2, -32.96247211794),
@@ -156,6 +156,94 @@ fn orbital_layout_and_spin_channels() -> Result<()> {
         assert!(dict.get_at(usize::MAX).is_err());
         assert!(dict.get("missing").is_err());
     }
+    Ok(())
+}
+
+#[test]
+fn orbital_localization() -> Result<()> {
+    let mut calc = Calculator::new(water()?, Method::Gfn2)?;
+    calc.set_save_integrals(true)?;
+    calc.add_orbital_localization(LocalizationMethod::FosterBoys)?;
+    let res = calc.singlepoint()?;
+    let n = res.orbital_count()?;
+    let canonical = res.orbital_coefficients()?;
+    let local = res.localized_orbital_coefficients()?;
+    let centers = res.localized_orbital_centers()?;
+    let dict = res.post_processing()?;
+    assert_eq!(local, dict.get("localized-orbitals")?);
+    assert_eq!(centers, dict.get("localized-centers")?);
+    assert_eq!(local.shape(), &[1, n, n]);
+    assert_eq!(centers.shape(), &[1, n, 3]);
+    // tblite localizes the orbitals of the alpha electrons in a restricted calculation.
+    let occ = res.orbital_occupations()?;
+    let nocc = (0..n)
+        .map(|k| occ.get(&[0, k]).unwrap())
+        .sum::<f64>()
+        .round() as usize;
+    assert_eq!(nocc, 4);
+    let s = res.overlap_matrix()?;
+    for a in 0..n {
+        for b in 0..n {
+            let overlap: f64 = (0..n)
+                .flat_map(|i| (0..n).map(move |j| (i, j)))
+                .map(|(i, j)| {
+                    local.get(&[0, a, i]).unwrap()
+                        * s.get(&[i, j]).unwrap()
+                        * local.get(&[0, b, j]).unwrap()
+                })
+                .sum();
+            close(overlap, if a == b { 1.0 } else { 0.0 }, 1e-8);
+            // A rotation within the occupied orbitals keeps their projector.
+            let projector = |c: &Tensor| -> f64 {
+                (0..nocc)
+                    .map(|k| c.get(&[0, k, a]).unwrap() * c.get(&[0, k, b]).unwrap())
+                    .sum()
+            };
+            close(projector(&local), projector(&canonical), 1e-8);
+        }
+    }
+    let positions = calc.structure().positions();
+    for k in 0..n {
+        let center: Vec<f64> = (0..3).map(|x| centers.get(&[0, k, x]).unwrap()).collect();
+        if k < nocc {
+            for (x, &value) in center.iter().enumerate() {
+                let lo = positions.iter().map(|p| p[x]).fold(f64::INFINITY, f64::min);
+                let hi = positions
+                    .iter()
+                    .map(|p| p[x])
+                    .fold(f64::NEG_INFINITY, f64::max);
+                assert!(value > lo - 1.0 && value < hi + 1.0, "center {center:?}");
+            }
+        } else {
+            assert_eq!(center, [0.0; 3]);
+            for i in 0..n {
+                close(
+                    local.get(&[0, k, i]).unwrap(),
+                    canonical.get(&[0, k, i]).unwrap(),
+                    1e-12,
+                );
+            }
+        }
+    }
+
+    let mol = Structure::builder(&[8, 1], &[[0.0, 0.0, 0.0], [1.4, 0.2, 1.1]])
+        .unpaired_electrons(1)
+        .build()?;
+    let mut radical = Calculator::new(mol, Method::Gfn1)?;
+    radical.add_spin_polarization(1.0)?;
+    radical.add_post_processing("lmo-foster-boys")?;
+    let res = radical.singlepoint()?;
+    let n = res.orbital_count()?;
+    assert_eq!(res.localized_orbital_coefficients()?.shape(), &[2, n, n]);
+    assert_eq!(res.localized_orbital_centers()?.shape(), &[2, n, 3]);
+
+    let mut plain = Calculator::new(water()?, Method::Gfn2)?;
+    let res = plain.singlepoint()?;
+    assert!(res.localized_orbital_coefficients().is_err());
+    assert!(res.localized_orbital_centers().is_err());
+    assert!(CalculationResult::new()?
+        .localized_orbital_coefficients()
+        .is_err());
     Ok(())
 }
 
@@ -361,6 +449,9 @@ fn solvation_fields_and_calculator_options() -> Result<()> {
 fn optional_ddx_and_hdf5_are_explicit() -> Result<()> {
     let expected_full = std::env::var("TBLITE_TEST_OPTIONAL").ok().as_deref() == Some("full");
     let expected_minimal = std::env::var("TBLITE_TEST_OPTIONAL").ok().as_deref() == Some("minimal");
+    let (ddx, hdf5) = (has_feature("ddx")?, has_feature("hdf5")?);
+    assert!(!expected_full || (ddx && hdf5));
+    assert!(!expected_minimal || (!ddx && !hdf5));
     for model in [
         Solvation::DdxDielectric {
             epsilon: 80.0,
@@ -374,11 +465,11 @@ fn optional_ddx_and_hdf5_are_explicit() -> Result<()> {
         let mut c = Calculator::new(water()?, Method::Gfn2)?;
         match c.add_solvation(model) {
             Ok(()) => {
-                assert!(!expected_minimal);
+                assert!(ddx);
                 assert!(c.singlepoint()?.energy()?.is_finite());
             }
             Err(e) => {
-                assert!(!expected_full, "{e}");
+                assert!(!ddx, "{e}");
                 assert!(e.to_string().contains("not available"), "{e}");
             }
         }
@@ -388,7 +479,7 @@ fn optional_ddx_and_hdf5_are_explicit() -> Result<()> {
     let path = temp("wavefunction.h5");
     match original.save_wavefunction(&path) {
         Ok(()) => {
-            assert!(!expected_minimal);
+            assert!(hdf5);
             let mut restart = CalculationResult::new()?;
             restart.load_wavefunction(&path)?;
             assert!(restart.energy().is_err());
@@ -397,7 +488,7 @@ fn optional_ddx_and_hdf5_are_explicit() -> Result<()> {
             std::fs::remove_file(&path)?;
         }
         Err(e) => {
-            assert!(!expected_full, "{e}");
+            assert!(!hdf5, "{e}");
             assert!(e.to_string().to_lowercase().contains("hdf5"), "{e}");
         }
     }

@@ -14,8 +14,8 @@ experiment. No structures are selected by agreement, optimized or dropped.
 
 ## Results
 
-- [Windows x86-64, MSVC Rust / UCRT64 native library](results/windows/README.md)
-- [Linux x86-64 under WSL](results/linux/README.md)
+- [Windows x86-64, MSVC Rust / the Windows runtime bundle](results/windows/README.md)
+- [Linux x86-64 under WSL / the Linux runtime bundle](results/linux/README.md)
 
 Reports include correlation, maximum absolute error, MAE, RMSE, signed bias,
 worst molecule, per-case CSV, every paired value, identity plots and magnified
@@ -31,10 +31,9 @@ alongside the existing integration tests.
 ## Provenance and license
 
 `structures.json` transcribes the `mindless01` through `mindless43` routines in
-[mstore/src/mstore/mb16_43.f90](https://github.com/grimme-lab/mstore/blob/663245d739be0123da61c917e55116b0c3db4c74/src/mstore/mb16_43.f90).
-The mstore revision pinned by the tblite 0.7.0 build is
-`663245d739be0123da61c917e55116b0c3db4c74`. The source SHA-256 with LF endings is
-`4281f4e7f39c514ed449de49ee255b698b1a7d410f0625553e9b70c0893228a6`.
+[mstore/src/mstore/mb16_43.f90](https://github.com/grimme-lab/mstore/blob/663245d739be0123da61c917e55116b0c3db4c74/src/mstore/mb16_43.f90)
+at mstore revision `663245d739be0123da61c917e55116b0c3db4c74`. The source SHA-256
+with LF endings is `4281f4e7f39c514ed449de49ee255b698b1a7d410f0625553e9b70c0893228a6`.
 Coordinates remain in Bohr and original atom order, with original charge/spin.
 The reference-fragment geometries are excluded.
 
@@ -46,15 +45,18 @@ code, MIT OR Apache-2.0. Dataset and reports are excluded from Cargo packages.
 Regenerate from the checksum-pinned source with:
 
 ```sh
-python3 tools/benchmark_parity.py prepare \
-  .native/tblite-0.7.0/subprojects/mstore/src/mstore/mb16_43.f90
+curl -fsSL -o .native/mb16_43.f90 \
+  https://raw.githubusercontent.com/grimme-lab/mstore/663245d739be0123da61c917e55116b0c3db4c74/src/mstore/mb16_43.f90
+python3 tools/benchmark_parity.py prepare .native/mb16_43.f90
 ```
 
 ## Reproduction
 
-Install native tblite 0.7.0 and its standalone executable following
+Install native tblite 0.8.0 and its standalone executable following
 [installation.md](../../docs/installation.md). Both routes must load the same
-native build. `--library` sets its search directory and records its checksum;
+native build. The reports above use the runtime bundles of
+[distribution.md](../../docs/distribution.md), with the `tblite` executable
+from the bundle's build (`.native/bundle/install/bin`). `--library` sets its search directory and records its checksum;
 repeatable `--runtime-dir` arguments add dependency directories. Executable,
 driver, script and dataset hashes, Rust revision, versions, platform and
 numerical settings are recorded in `results.json`.
@@ -85,7 +87,7 @@ Each case runs in a new directory, preventing reuse of wavefunctions or implicit
 `.CHRG` / `.UHF` inputs. Both routes use SAD, accuracy 0.01, at most 250 SCF
 iterations, one OpenMP/BLAS thread and one electronic spin channel with
 alpha/beta occupations. The original unpaired-electron count is respected.
-Native 0.7.0 converts 300 K using `3.166808578545117e-6` Hartree/K. The Rust
+Native tblite converts 300 K using `3.166808578545117e-6` Hartree/K. The Rust
 driver passes that exact kT to `set_temperature`; `set_temperature_kelvin` uses
 a slightly different CODATA constant.
 

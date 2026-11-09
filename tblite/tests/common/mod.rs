@@ -1,4 +1,4 @@
-// Coordinates and reference energies from tblite v0.7.0 test/api/main.c.
+// Coordinates and reference energies from tblite v0.8.0 test/api/main.c.
 // Upstream fixture attribution: LGPL-3.0-or-later; see tblite-sys/vendor.
 pub const NUMBERS: [i32; 22] = [
     7, 1, 6, 1, 6, 6, 1, 1, 1, 8, 6, 6, 1, 1, 1, 8, 7, 1, 6, 1, 1, 1,

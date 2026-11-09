@@ -22,11 +22,11 @@ with tempfile.TemporaryDirectory(prefix="discovery-", dir=ROOT / ".native") as t
     (prefix / "include/tblite.h").write_text("/* discovery fixture, not compiled */\n")
     (prefix / "lib/pkgconfig").mkdir(parents=True)
     pc = prefix / "lib/pkgconfig/tblite.pc"
-    pc.write_text("Version: 0.8.0\n")
-    expect_error("Unsupported tblite 0.8.0")
-    pc.write_text("Version: 0.6.0\n")
-    expect_error("Unsupported tblite 0.6.0")
+    pc.write_text("Version: 0.9.0\n")
+    expect_error("Unsupported tblite 0.9.0")
     pc.write_text("Version: 0.7.0\n")
+    expect_error("Unsupported tblite 0.7.0")
+    pc.write_text("Version: 0.8.0\n")
     if os.name == "nt":
         expect_error("Missing tblite.lib")
         expect_error("Windows static linking is not supported", "--features", "static")

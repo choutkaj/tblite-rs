@@ -1,12 +1,12 @@
 # tblite
 
-Safe Rust bindings for the complete tblite 0.7 C API. Own structures,
+Safe Rust bindings for the complete tblite 0.8 C API. Own structures,
 calculators, contexts, results, parameters and tables with automatic cleanup.
 Numerical output uses owned arrays with documented shapes and atomic units.
 
 ```toml
 [dependencies]
-tblite = "0.1.0"
+tblite = "0.2.0"
 ```
 
 Install tblite separately; Cargo discovers it through `TBLITE_DIR` or
@@ -16,6 +16,6 @@ against an existing shared installation.
 
 See the [repository and examples](https://github.com/choutkaj/tblite-rs) and
 [installation guide](https://github.com/choutkaj/tblite-rs/blob/main/docs/installation.md).
-The [API reference](https://docs.rs/tblite/0.1.0/tblite/) documents the Rust interface.
+The [API reference](https://docs.rs/tblite/0.2.0/tblite/) documents the Rust interface.
 Original Rust code is MIT OR Apache-2.0; linking/distributing tblite carries the
 native library's LGPL-3.0-or-later obligations.

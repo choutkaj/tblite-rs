@@ -1,8 +1,8 @@
-//! Raw bindings for tblite 0.7.x. All pointer validity, ownership, buffer sizes,
+//! Raw bindings for tblite 0.8.x. All pointer validity, ownership, buffer sizes,
 //! synchronization and native version compatibility are the caller's responsibility.
 //! Prefer the `tblite` crate for safe application code.
 //!
-//! # Upstream 0.7.0 ABI errata
+//! # Upstream ABI errata
 //! These declarations reproduce the released headers. For `tblite_new_table`,
 //! the implementation actually takes an existing handle by value, although the
 //! header declares a pointer to a handle. For a non-null alias, pass

@@ -66,7 +66,7 @@ python3 tools/check_coverage.py --check
 ```
 
 The generator accepts only the small C declaration grammar actually present in
-the 12 pinned public headers. Unknown declarations or a changed function count
+the 13 pinned public headers. Unknown declarations or a changed function count
 fail generation. It uses standard Python and rustfmt, writes Rust declarations,
 a header checksum/signature manifest, and the C ABI/symbol test. To regenerate,
 run both commands without `--check`. End users build these checked-in files;
@@ -74,14 +74,14 @@ they need neither Python nor Clang.
 
 The `tblite-sys/abi-tests` feature compiles a C probe against the **installed**
 headers with the target C compiler, verifies C/Rust layouts and enum constants,
-and resolves all 117 native function addresses. It is a developer test feature,
+and resolves all 123 native function addresses. It is a developer test feature,
 not required for ordinary Cargo builds. CI checks formatting, generated files,
 coverage, examples and native tests on the platform matrix.
 
 Before upgrading the native baseline, inspect the Fortran `bind(C)` bodies,
 array assignments, optional allocation paths, ownership transfers and callback
-behavior as well as C declarations. Several 0.7.0 header annotations differ
-from the implementation; see [the documented errata](safety.md).
+behavior as well as C declarations. Several header annotations differ from
+the implementation; see [the documented errata](safety.md).
 
 ## Scope
 

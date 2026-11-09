@@ -1,6 +1,6 @@
 # Installation and linking
 
-Use tblite **0.7.x**, built with its C API enabled. These instructions pin 0.7.0
+Use tblite **0.8.x**, built with its C API enabled. These instructions pin 0.8.0
 and GNU Fortran. Meson is upstream's recommended build route for the complete
 library: [upstream installation guide](https://tblite.readthedocs.io/en/latest/installation.html).
 
@@ -13,7 +13,7 @@ binaries across different toolchains. Build in a path without spaces for the
 most reliable Fortran/pkg-config experience.
 
 The installer applies a small visibility fix to the pinned source: 13 released
-C entry points are explicitly declared `PUBLIC` in their Fortran modules. This
+C entry points, `PRIVATE` in their Fortran modules, are declared `PUBLIC`. This
 avoids missing shared-library exports on macOS with affected GNU Fortran
 versions (see [GCC PR126872](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=126872)).
 It changes no C signatures or procedure bodies. Pristine and already-patched
@@ -101,7 +101,7 @@ cargo run -p tblite --example singlepoint
 ```
 
 Adjust the MSYS2 path to your installation. The PowerShell tool verifies all
-117 public exports and generates `lib/tblite.lib` from the actual DLL using
+123 public exports and generates `lib/tblite.lib` from the actual DLL using
 MSVC's `dumpbin.exe` and `lib.exe`. A GNU `.dll.a` is not used as the MSVC import
 library. The import library is a build-time input; the matching tblite DLL and
 its dependency DLLs are needed at runtime. Do not substitute Fortran modules or
@@ -181,8 +181,9 @@ python3 tools/build-native.py --prefix "$PWD/.native/minimal" \
     --build-dir "$PWD/.native/build-minimal" --minimal
 ```
 
-There is no 0.7.0 C feature-query function. Optional operations are always in the
-Rust API and return the native error if unavailable. Set
-`TBLITE_TEST_OPTIONAL=full` for tests requiring ddX and HDF5, or `minimal` to
-require that both are absent. With neither set, tests accept either installation
-and check that unavailable features report an error.
+`tblite::has_feature` reports whether the installed library has ddX, HDF5,
+TREXIO, MPI or ScaLAPACK. Optional operations are always in the Rust API and
+return the native error if unavailable; the tests check that this agrees with
+`has_feature`. Set `TBLITE_TEST_OPTIONAL=full` for tests requiring ddX and HDF5,
+or `minimal` to require that both are absent. The installer builds without MPI
+and ScaLAPACK.
