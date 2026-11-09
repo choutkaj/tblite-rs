@@ -246,7 +246,8 @@ impl Calculator {
         &mut self.context
     }
     /// The borrowed result stays valid until the next mutable calculator operation.
-    /// Call `try_clone()` to retain an independent snapshot.
+    /// Call `try_clone()` to retain an independent snapshot. A failed calculation
+    /// discards the result and the restart data.
     ///
     /// ```compile_fail
     /// # use tblite::*;
@@ -566,6 +567,7 @@ impl Calculator {
         }
         self.context.check()
     }
+    /// `params` must contain a post-processing table.
     pub fn add_post_processing_parameters(&mut self, params: &Parameters) -> Result<()> {
         let _guard = runtime::enter()?;
         params.ensure_initialized()?;

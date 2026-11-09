@@ -83,6 +83,7 @@ impl Context {
     /// Return an error to stop the calculation. Panics become native errors.
     /// Calling back into tblite is rejected with `ErrorKind::CallbackReentry`.
     /// A callback must not wait for another thread that is trying to call tblite.
+    /// tblite 0.8.0 leaks a small allocation when a used logger is replaced or dropped.
     pub fn set_logger(
         &mut self,
         logger: impl Fn(&str) -> Result<()> + Send + Sync + 'static,

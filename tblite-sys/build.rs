@@ -21,7 +21,7 @@ fn main() {
         include = root.join("include");
         assert!(
             include.join("tblite.h").is_file(),
-            "TBLITE_DIR must contain include/tblite.h; see docs/installation.md"
+            "TBLITE_DIR must contain include/tblite.h; see https://github.com/choutkaj/tblite-rs#install"
         );
         let pc = [root.join("lib/pkgconfig/tblite.pc"), root.join("lib64/pkgconfig/tblite.pc")].into_iter().find(|p| p.is_file()).expect("TBLITE_DIR must contain the tblite.pc installed by Meson (lib/pkgconfig or lib64/pkgconfig)");
         println!("cargo:rerun-if-changed={}", pc.display());
@@ -150,7 +150,7 @@ fn link_static_tblite(lib: &pkg_config::Library) {
 }
 
 fn probe(static_link: bool) -> pkg_config::Library {
-    let lib = pkg_config::Config::new().range_version("0.8.0".."0.9.0").statik(static_link).cargo_metadata(!static_link).probe("tblite").unwrap_or_else(|e| panic!("Cannot link tblite 0.8.x: {e}\nInstall tblite separately and set PKG_CONFIG_PATH or TBLITE_DIR. See docs/installation.md."));
+    let lib = pkg_config::Config::new().range_version("0.8.0".."0.9.0").statik(static_link).cargo_metadata(!static_link).probe("tblite").unwrap_or_else(|e| panic!("Cannot link tblite 0.8.x: {e}\nInstall tblite separately and set PKG_CONFIG_PATH or TBLITE_DIR. See https://github.com/choutkaj/tblite-rs#install."));
     check_version(&lib.version);
     if static_link {
         assert!(lib.link_paths.iter().any(|p| p.join("libtblite.a").is_file()), "The `static` feature requires libtblite.a; rebuild tblite with --default-library=both or static");

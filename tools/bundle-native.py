@@ -8,12 +8,14 @@ loads, their licence texts and SOURCES.md:
     licenses/      licence texts, one directory per component
     SOURCES.md     versions, checksums, build settings and source locations
 
-Windows x86-64 builds with the MSYS2 UCRT64 packages pinned in
-tools/bundle/msys2-ucrt64.txt; Linux x86-64 with the conda-forge toolchain
-pinned in tools/bundle/conda-linux-64.txt, against glibc 2.28; macOS arm64 with
-the conda-forge toolchain pinned in tools/bundle/conda-osx-arm64.txt, for
-macOS 11. tblite and its dependencies come from tools/build-native.py. See
-docs/distribution.md.
+Windows x86-64 needs MSYS2 with the UCRT64 packages pinned in
+tools/bundle/msys2-ucrt64.txt (the script prints the pacman command for missing
+ones) and the MSVC build tools. Linux x86-64 and macOS arm64 need micromamba:
+the script creates the conda-forge toolchain pinned in
+tools/bundle/conda-linux-64.txt or conda-osx-arm64.txt in the work directory.
+Linux builds against glibc 2.28. macOS builds for macOS 11 and needs the Xcode
+Command Line Tools and an arm64 Python. tblite and its dependencies come from
+tools/build-native.py. --archive DIR also writes tblite-<version>-<platform>.tar.gz.
 """
 import argparse
 import hashlib
